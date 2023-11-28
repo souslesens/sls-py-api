@@ -1,0 +1,6 @@
+[main]
+souslesens_config_dir = /PATH/TO/SOUSLESENSVOCABLES/config
+log_level = info
+
+[rdf]
+batch_size = 10000
