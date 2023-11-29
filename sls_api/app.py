@@ -23,7 +23,6 @@ class App(FastAPI):
 
         self.log = log(self.config.get("main", "log_level"))
 
-        origins = [e.strip() for e in self.config.get("cors", "origins").split(",")]
         self.add_middleware(
             CORSMiddleware,
             allow_origins=[
