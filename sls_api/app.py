@@ -3,6 +3,7 @@ from time import sleep
 
 import requests
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from rdflib import Graph
 from requests.auth import HTTPDigestAuth
 
@@ -16,11 +17,37 @@ from sls_api.utils import batched
 class App(FastAPI):
     def __init__(self, config_path: str = "config.ini"):
         super().__init__()
+
         self.config_path = Path(config_path)
         self.config = self._get_config()
 
-        # logging
         self.log = log(self.config.get("main", "log_level"))
+
+        origins = [e.strip() for e in self.config.get("cors", "origins").split(",")]
+        self.add_middleware(
+            CORSMiddleware,
+            allow_origins=[
+                e.strip()
+                for e in self.config.get(
+                    "cors", "origins", fallback="localhost,127.0.0.1"
+                ).split(",")
+            ],
+            allow_credentials=self.config.getboolean(
+                "cors", "allowed_credentials", fallback=True
+            ),
+            allow_methods=[
+                e.strip()
+                for e in self.config.get(
+                    "cors", "allowed_methods", fallback="GET,POST,DELETE"
+                ).split(",")
+            ],
+            allow_headers=[
+                e.strip()
+                for e in self.config.get("cors", "allowed_headers", fallback="*").split(
+                    ","
+                )
+            ],
+        )
 
     def _get_config(self) -> SlsConfigParser:
         parser = SlsConfigParser()

@@ -2,5 +2,11 @@
 souslesens_config_dir = /PATH/TO/SOUSLESENSVOCABLES/config
 log_level = info
 
+[cors]
+origins = localhost,127.0.0.1
+allowed_methods = GET,POST,DELETE
+allowed_headers = *
+allowed_credentials = yes
+
 [rdf]
 batch_size = 10000
