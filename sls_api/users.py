@@ -1,14 +1,31 @@
+from dataclasses import dataclass
+
+
 class Users:
     pass
 
 
+@dataclass
 class User:
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            if k.startswith("_"):
-                continue
-            setattr(self, k, v)
-        self.sources = {}
+    """Represents an User from the structure of the users.json file
+
+    Attributes
+    ----------
+    sources : dict
+        Store the sources which are readable for the user
+    """
+
+    _type: str
+    groups: list
+    id: str
+    login: str
+    name: str
+    password: str
+    source: str
+    token: str
+
+    # Specified as {"source_name": {"accessControl": "read", ...}, ...}
+    sources = {}
 
     def can_read(self, source: str) -> bool:
         return source in self.sources
