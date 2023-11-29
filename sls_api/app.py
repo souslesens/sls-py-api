@@ -14,7 +14,7 @@ from sls_api.utils import batched
 
 
 class App(FastAPI):
-    def __init__(self, config_path: str = "config.ini") -> None:
+    def __init__(self, config_path: str = "config.ini"):
         super().__init__()
         self.config_path = Path(config_path)
         self.config = self._get_config()
@@ -28,12 +28,12 @@ class App(FastAPI):
         return parser
 
     @property
-    def sls_config(self):
+    def sls_config(self) -> SlsConfig:
         path = Path(self.config.get("main", "souslesens_config_dir")).expanduser()
         return SlsConfig(path)
 
     @property
-    def _admin_user(self):
+    def _admin_user(self) -> dict:
         return {
             "_type": "user",
             "groups": ["admin"],
