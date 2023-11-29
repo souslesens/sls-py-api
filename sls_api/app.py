@@ -49,7 +49,7 @@ class App(FastAPI):
         if self.sls_config.mainconfig["auth"] == "disabled":
             return User(**self._admin_user)
 
-        for user in self.sls_config.users:
+        for user in self.sls_config.users.values():
             if user.get("token", None) == token:
                 return User(**user)
 
