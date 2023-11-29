@@ -1,5 +1,49 @@
 from configparser import ConfigParser
+from json import loads
+from pathlib import Path
 from os import getenv
+
+
+class SlsConfig:
+    """Store all the configuration from the SousLeSens project"""
+
+    def __init__(self, config_dir: Path):
+        """Retrieve the configuration as JSON files from the config directory
+
+        Parameters
+        ----------
+        config_dir : pathlib.Path
+            The path to the SousLeSens config directory which contains the
+            mainConfig.json and the other files
+        """
+
+        self.config_dir = config_dir
+
+        self.mainconfig = self._get_sls_config("mainConfig.json")
+        self.sources = self._get_sls_config("sources.json")
+        self.profiles = self._get_sls_config("profiles.json")
+        self.users = self._get_sls_config("users/users.json")
+
+    def _get_sls_config(self, file_name: str) -> dict:
+        """Read and parse the specified SousLeSens configuration file
+
+        Parameters
+        ----------
+        file_name : str
+            The name of the file contains in the SousLeSens config directory
+
+        Returns
+        -------
+        dict
+            The content of the JSON file as a Python dict structure
+        """
+
+        config_path = self.config_dir.joinpath(file_name)
+
+        if not config_path.exists():
+            raise FileNotFoundError(f"{file_name} connot be found in {config_path}")
+
+        return loads(config_path.read_text())
 
 
 class SlsConfigParser(ConfigParser):

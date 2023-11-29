@@ -1,5 +1,4 @@
 from pathlib import Path
-from json import loads
 from time import sleep
 
 import requests
@@ -7,29 +6,11 @@ from fastapi import FastAPI
 from rdflib import Graph
 from requests.auth import HTTPDigestAuth
 
-from sls_api.config import SlsConfigParser
+from sls_api.config import SlsConfigParser, SlsConfig
 from sls_api.graph import RdfGraph
 from sls_api.logging import log
 from sls_api.users import User
 from sls_api.utils import batched
-
-
-class SlsConfig:
-    def __init__(self, config_dir: Path) -> None:
-        self.config_dir = config_dir
-
-        self.mainconfig = self._get_sls_config("mainConfig.json")
-        self.sources = self._get_sls_config("sources.json")
-        self.profiles = self._get_sls_config("profiles.json")
-        self.users = self._get_sls_config("users/users.json")
-
-    def _get_sls_config(self, file_name: str) -> dict:
-        config_path = self.config_dir.joinpath(file_name)
-
-        if not config_path.exists():
-            raise FileNotFoundError(f"{file_name} connot be found in {config_path}")
-
-        return loads(config_path.read_text())
 
 
 class App(FastAPI):
