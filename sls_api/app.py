@@ -1,5 +1,3 @@
-import logging
-from configparser import ConfigParser
 from pathlib import Path
 from json import loads
 from time import sleep
@@ -9,6 +7,7 @@ from fastapi import FastAPI
 from rdflib import Graph
 from requests.auth import HTTPDigestAuth
 
+from sls_api.config import SlsConfigParser
 from sls_api.graph import RdfGraph
 from sls_api.logging import log
 from sls_api.users import User
@@ -42,8 +41,8 @@ class App(FastAPI):
         # logging
         self.log = log(self.config.get("main", "log_level"))
 
-    def _get_config(self) -> ConfigParser:
-        parser = ConfigParser()
+    def _get_config(self) -> SlsConfigParser:
+        parser = SlsConfigParser()
         parser.read_file(self.config_path.open())
         return parser
 
