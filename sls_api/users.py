@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 class Users:
@@ -25,7 +25,10 @@ class User:
     token: str
 
     # Specified as {"source_name": {"accessControl": "read", ...}, ...}
-    sources = {}
+    sources: dict = field(init=False)
+
+    def __post_init__(self):
+        self.sources = {}
 
     def can_read(self, source: str) -> bool:
         return source in self.sources
