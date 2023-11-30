@@ -79,7 +79,7 @@ def post_rdf_graph(
     if last:
         app.upload_rdf_graph_to_endpoint(tmpfile, source, remove_graph=True)
 
-    # remove tmpfile
-    tmpfile.unlink()
+        # remove tmpfile
+        tmpfile.unlink()
 
     return {"identifier": identifier}
