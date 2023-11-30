@@ -63,7 +63,7 @@ def post_rdf_graph(
         raise HTTPException(status_code=401, detail=f"Not authorized to write {source}")
 
     if not identifier:
-        identifier = ULID()
+        identifier = str(ULID())
 
     tmpdir = Path(gettempdir())
     tmpfile = tmpdir.joinpath(identifier)
