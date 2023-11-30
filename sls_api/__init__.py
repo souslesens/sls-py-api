@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated
 from tempfile import gettempdir
 
-from fastapi import Depends, File, Form, Header, HTTPException
+from fastapi import Depends, Form, Header, HTTPException, UploadFile
 from ulid import ULID
 
 
@@ -53,10 +53,10 @@ def delete_rdf_graph(
 def post_rdf_graph(
     last: Annotated[bool, Form()],
     clean: Annotated[bool, Form()],
-    data: Annotated[bytes, File()],
+    data: UploadFile,
     source: Annotated[str, Form()],
     user: Annotated[dict, Depends(verify_token)],
-    identifier: Annotated[str, Form()] = None,
+    identifier: Annotated[str, Form()] = "",
 ):
     user = app.add_sources_for_user(user)
     if not user.can_readwrite(source):
@@ -66,14 +66,15 @@ def post_rdf_graph(
         identifier = str(ULID())
 
     tmpdir = Path(gettempdir())
-    tmpfile = tmpdir.joinpath(identifier)
+    ext = Path(data.filename).suffix
+    tmpfile = tmpdir.joinpath(f"{identifier}{ext}")
 
     if clean:
         tmpfile.unlink()
         return {"identifier": identifier}
 
-    with tmpfile.open("a") as fp:
-        fp.write(data.decode())
+    with tmpfile.open("ab") as fp:
+        fp.write(data.file.read())
 
     # last chunk, load data into triplestore
     if last:
