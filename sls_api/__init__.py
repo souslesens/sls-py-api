@@ -26,12 +26,42 @@ def read_root(user: Annotated[dict, Depends(verify_token)]):
 @app.get("/api/v1/rdf/graph")
 def get_rdf_graph(
     user: Annotated[dict, Depends(verify_token)],
-    source: Annotated[str, Form()],
-    format: Annotated[str, Form()],
+    source: str,
+    identifier: str = "",
+    offset: int = 0,
+    format: str = "nt",
 ):
+    limit = 1_000_000  # 1MB
     user = app.add_sources_for_user(user)
     if not user.can_read(source):
         raise HTTPException(status_code=401, detail=f"Not authorized to read {source}")
+
+    tmpdir = Path(gettempdir())
+
+    # first call, write graph to file
+    if not identifier:
+        identifier = str(ULID())
+        tmpfile = tmpdir.joinpath(f"{identifier}.{format}")
+        app.get_rdf_graph_from_endpoint(tmpfile, source, format=format)
+    else:
+        tmpfile = tmpdir.joinpath(f"{identifier}.{format}")
+
+    # Get a slice of the file
+    data = tmpfile.read_text()
+    chunk = data[offset : offset + limit]
+
+    filesize = tmpfile.stat().st_size
+    if offset + limit >= filesize:
+        next_offset = None
+    else:
+        next_offset = offset + limit
+
+    return {
+        "identifier": identifier,
+        "filesize": filesize,
+        "next_offset": next_offset,
+        "data": chunk,
+    }
 
 
 @app.delete("/api/v1/rdf/graph")

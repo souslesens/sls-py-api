@@ -11,7 +11,7 @@ from sls_api.config import SlsConfigParser, SlsConfig
 from sls_api.graph import RdfGraph
 from sls_api.logging import log
 from sls_api.users import User
-from sls_api.utils import batched
+from sls_api.utils import batched, sparql_query
 
 
 class App(FastAPI):
@@ -149,6 +149,27 @@ class App(FastAPI):
 
         return ""
 
+    def _get_graph_size(self, source_name: str):
+        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+
+        sparql_server = self.sls_config.mainconfig["sparql_server"]
+        sparql_url = sparql_server["url"]
+        virtuoso_user = sparql_server["user"]
+        virtuoso_password = sparql_server["user"]
+
+        query = f"""SELECT count(*) as ?total
+        FROM <{graph_uri}>
+        WHERE {{
+            ?s ?p ?o
+        }}"""
+
+        result = int(
+            sparql_query(sparql_url, virtuoso_user, virtuoso_password, query)[
+                "results"
+            ]["bindings"][0]["total"]["value"]
+        )
+        return result
+
     def delete_graph_from_endpoint(self, source_name: str):
         graph_uri = self.sls_config.sources[source_name]["graphUri"]
 
@@ -167,6 +188,52 @@ class App(FastAPI):
         if response.status_code not in (200, 201, 404):
             self.log.info(f"Got {response.status_code} while deleting graph")
         sleep(3)  # give virtuoso enough time to delete the graph
+
+    def get_rdf_graph_from_endpoint(
+        self, graph_path: Path, source_name: str, format: str = "nt"
+    ):
+        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+
+        sparql_server = self.sls_config.mainconfig["sparql_server"]
+        sparql_url = sparql_server["url"]
+        virtuoso_user = sparql_server["user"]
+        virtuoso_password = sparql_server["user"]
+
+        limit = self.config.getint("rdf", "batch_size")
+        graph_size = self._get_graph_size(source_name)
+        offset = 0
+
+        graph = Graph()
+
+        while offset < graph_size:
+            # get percent and number of triples for logging
+            percent = min(int(((offset + limit) * 100 / graph_size)), 100)
+            ntriples = limit if offset + limit < graph_size else graph_size - offset
+
+            self.log.info(f"Downloading {graph_uri} ({ntriples} triples) ({percent}%)")
+
+            # get a subgraph
+            query = f"""CONSTRUCT {{ ?s ?p ?o . }}
+            FROM <{graph_uri}>
+            WHERE {{
+                ?s ?p ?o .
+            }}
+            LIMIT {limit}
+            OFFSET {offset}"""
+
+            results = sparql_query(
+                sparql_url, virtuoso_user, virtuoso_password, query, "xml"
+            )
+
+            # concat subgraph to final graph
+            graph += results
+            offset += limit
+
+        # write graph to tmpfile
+        graph.serialize(destination=graph_path, format=format, encoding="utf-8")
+        self.log.info(f"{graph_uri} writed to {graph_path}")
+
+        return graph_path
 
     def upload_rdf_graph_to_endpoint(
         self, graph_path: Path, source_name: str, remove_graph: bool = False
