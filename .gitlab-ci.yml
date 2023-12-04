@@ -5,9 +5,27 @@ include:
     file:
       - "templates/base.yml"
       - "templates/no-duplicated-ci-pipelines.yml"
+      - "templates/lint/black.yml"
+      - "templates/tests/py3.yml"
       - "templates/create-release-on-heptapod.yml"
       - "templates/build-docker-image.yml"
 
 default:
   tags:
     - dedibox
+
+black:
+  image: python:3.11-alpine
+  script:
+    - pip install -U poetry
+    - poetry install --with=dev
+    - poetry run black sls_api tests
+
+py3:
+  image: python:3.11-alpine
+  script:
+    - pip install -U poetry
+    - cp config.ini.default config.ini
+    - poetry install --with=dev
+    - poetry run pytest -v tests
+  artifacts: null
