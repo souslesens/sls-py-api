@@ -77,6 +77,9 @@ class App(FastAPI):
 
         for user in self.sls_config.users.values():
             if user.get("token", None) == token:
+                # sometimes, name is not present in users.json file
+                if not "name" in user:
+                    user["name"] = user["id"]
                 return User(**user)
 
     def add_sources_for_user(self, user: User) -> User:
