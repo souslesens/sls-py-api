@@ -1,4 +1,5 @@
 from pathlib import Path
+from re import compile as re_compile
 from time import sleep
 
 import requests
@@ -22,6 +23,10 @@ class App(FastAPI):
         self.config = self._get_config()
 
         self.log = log(self.config.get("main", "log_level"))
+
+        self.authorization_pattern = re_compile(
+            r"^(?P<scheme>[^\s]+)\s+(?P<token>[^$]+)"
+        )
 
         self.add_middleware(
             CORSMiddleware,
