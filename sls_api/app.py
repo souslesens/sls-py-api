@@ -158,7 +158,7 @@ class App(FastAPI):
         sparql_server = self.sls_config.mainconfig["sparql_server"]
         sparql_url = sparql_server["url"]
         virtuoso_user = sparql_server["user"]
-        virtuoso_password = sparql_server["user"]
+        virtuoso_password = sparql_server["password"]
 
         query = f"""SELECT count(*) as ?total
         FROM <{graph_uri}>
@@ -179,7 +179,7 @@ class App(FastAPI):
         sparql_server = self.sls_config.mainconfig["sparql_server"]
         virtuoso_url = sparql_server["url"].removesuffix("/sparql")
         virtuoso_user = sparql_server["user"]
-        virtuoso_password = sparql_server["user"]
+        virtuoso_password = sparql_server["password"]
 
         self.log.info(f"removing {graph_uri}…")
 
@@ -200,7 +200,7 @@ class App(FastAPI):
         sparql_server = self.sls_config.mainconfig["sparql_server"]
         sparql_url = sparql_server["url"]
         virtuoso_user = sparql_server["user"]
-        virtuoso_password = sparql_server["user"]
+        virtuoso_password = sparql_server["password"]
 
         limit = self.config.getint("rdf", "batch_size")
         graph_size = self._get_graph_size(source_name)
@@ -252,7 +252,7 @@ class App(FastAPI):
         sparql_server = self.sls_config.mainconfig["sparql_server"]
         virtuoso_url = sparql_server["url"].removesuffix("/sparql")
         virtuoso_user = sparql_server["user"]
-        virtuoso_password = sparql_server["user"]
+        virtuoso_password = sparql_server["password"]
 
         # divide graph into subgraph of batch_size triples and upload them
         batch_size = self.config.getint("rdf", "batch_size")
