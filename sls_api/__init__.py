@@ -11,10 +11,23 @@ from sls_api.app import App
 app = App()
 
 
-async def verify_token(x_token: Annotated[str, Header()]):
-    user = app.get_user_from_token(x_token)
+async def verify_token(authorization: Annotated[str, Header()]):
+    output = app.authorization_pattern.match(authorization)
+    if output is None:
+        raise HTTPException(
+            status_code=400, detail="The specified Authorization is not valid"
+        )
+
+    if not output.group("scheme") == "Bearer":
+        raise HTTPException(
+            status_code=405, detail="The only authorized auth scheme is Bearer"
+        )
+
+    user = app.get_user_from_token(output.group("token"))
     if not user:
-        raise HTTPException(status_code=400, detail="X-Token header invalid")
+        raise HTTPException(
+            status_code=401, detail="You are not authorized"
+        )
     return user
 
 
