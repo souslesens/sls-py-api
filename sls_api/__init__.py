@@ -98,6 +98,7 @@ def post_rdf_graph(
     clean: Annotated[bool, Form()],
     data: UploadFile,
     source: Annotated[str, Form()],
+    replace: Annotated[bool, Form()],
     user: Annotated[dict, Depends(verify_token)],
     identifier: Annotated[str, Form()] = "",
 ):
@@ -121,7 +122,7 @@ def post_rdf_graph(
 
     # last chunk, load data into triplestore
     if last:
-        app.upload_rdf_graph_to_endpoint(tmpfile, source, remove_graph=True)
+        app.upload_rdf_graph_to_endpoint(tmpfile, source, remove_graph=replace)
 
         # remove tmpfile
         tmpfile.unlink()
