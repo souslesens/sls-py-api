@@ -14,6 +14,8 @@ class TestUser(TestCase):
         "password": "admin",
         "source": "admin",
         "token": "admin",
+        "allowSourceCreation": False,
+        "maxNumberCreatedSource": 5,
     }
 
     DEFAULT_SOURCES = {
