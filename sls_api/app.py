@@ -5,7 +5,8 @@ from time import sleep
 import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from rdflib import Graph
+from rdflib import Graph, URIRef
+from rdflib.namespace import OWL
 from requests.auth import HTTPDigestAuth
 
 from sls_api.config import SlsConfigParser, SlsConfig
@@ -197,8 +198,21 @@ class App(FastAPI):
             self.log.info(f"Got {response.status_code} while deleting graph")
         sleep(3)  # give virtuoso enough time to delete the graph
 
+    @staticmethod
+    def remove_named_individuals_from_grap(graph):
+        namedIndividual = URIRef(OWL["NamedIndividual"])
+        new_graph = Graph()
+        for s, p, o in graph:
+            if o != namedIndividual:
+                new_graph.add((s, p, o))
+        return new_graph
+
     def get_rdf_graph_from_endpoint(
-        self, graph_path: Path, source_name: str, format: str = "nt"
+        self,
+        graph_path: Path,
+        source_name: str,
+        format: str = "nt",
+        skip_named_individuals: bool = False,
     ):
         graph_uri = self.sls_config.sources[source_name]["graphUri"]
 
@@ -232,6 +246,9 @@ class App(FastAPI):
             results = sparql_query(
                 sparql_url, virtuoso_user, virtuoso_password, query, "xml"
             )
+
+            if skip_named_individuals:
+                results = self.remove_named_individuals_from_grap(results)
 
             # concat subgraph to final graph
             graph += results

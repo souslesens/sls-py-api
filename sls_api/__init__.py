@@ -41,6 +41,7 @@ def get_rdf_graph(
     identifier: str = "",
     offset: int = 0,
     format: str = "nt",
+    skipNamedIndividuals: bool = False,
 ):
     limit = 1_000_000  # 1MB
     user = app.add_sources_for_user(user)
@@ -53,7 +54,12 @@ def get_rdf_graph(
     if not identifier:
         identifier = str(ULID())
         tmpfile = tmpdir.joinpath(f"{identifier}.{format}")
-        app.get_rdf_graph_from_endpoint(tmpfile, source, format=format)
+        app.get_rdf_graph_from_endpoint(
+            tmpfile,
+            source,
+            format=format,
+            skip_named_individuals=skipNamedIndividuals,
+        )
     else:
         tmpfile = tmpdir.joinpath(f"{identifier}.{format}")
 
