@@ -25,9 +25,7 @@ async def verify_token(authorization: Annotated[str, Header()]):
 
     user = app.get_user_from_token(output.group("token"))
     if not user:
-        raise HTTPException(
-            status_code=401, detail="You are not authorized"
-        )
+        raise HTTPException(status_code=401, detail="You are not authorized")
     return user
 
 
@@ -108,7 +106,6 @@ def post_rdf_graph(
 
     if not identifier:
         identifier = str(ULID())
-
     tmpdir = Path(gettempdir())
     ext = Path(data.filename).suffix
     tmpfile = tmpdir.joinpath(f"{identifier}{ext}")
