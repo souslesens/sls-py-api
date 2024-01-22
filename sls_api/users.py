@@ -23,8 +23,8 @@ class User:
     password: str
     source: str
     token: str
-    allowSourceCreation: bool
-    maxNumberCreatedSource: int
+    allowSourceCreation: bool = False
+    maxNumberCreatedSource: int = 5
 
     # Specified as {"source_name": {"accessControl": "read", ...}, ...}
     sources: dict = field(init=False)
