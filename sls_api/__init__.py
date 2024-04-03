@@ -54,7 +54,7 @@ def get_rdf_graph(
     if not identifier:
         identifier = str(ULID())
         tmpfile = tmpdir.joinpath(f"{identifier}.{format}")
-        app.get_rdf_graph_from_endpoint(
+        app.get_rdf_graph(
             tmpfile,
             source,
             format=format,

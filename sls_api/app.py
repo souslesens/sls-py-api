@@ -5,7 +5,7 @@ from time import sleep
 import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from rdflib import Graph, URIRef
+from rdflib import Graph, URIRef, Literal
 from rdflib.namespace import OWL
 from requests.auth import HTTPDigestAuth
 
@@ -183,7 +183,9 @@ class App(FastAPI):
         graph_uri = self.sls_config.sources[source_name]["graphUri"]
 
         sparql_server = self.sls_config.mainconfig["sparql_server"]
-        virtuoso_url = sparql_server["url"].removesuffix("/sparql")
+        virtuoso_url = sparql_server.get(
+            "virtuoso_url", sparql_server["url"].removesuffix("/sparql")
+        )
         virtuoso_user = sparql_server["user"]
         virtuoso_password = sparql_server["password"]
 
@@ -199,7 +201,7 @@ class App(FastAPI):
         sleep(3)  # give virtuoso enough time to delete the graph
 
     @staticmethod
-    def remove_named_individuals_from_grap(graph):
+    def remove_named_individuals_from_graph(graph):
         namedIndividual = URIRef(OWL["NamedIndividual"])
         new_graph = Graph()
         for s, p, o in graph:
@@ -207,12 +209,67 @@ class App(FastAPI):
                 new_graph.add((s, p, o))
         return new_graph
 
-    def get_rdf_graph_from_endpoint(
+    def get_rdf_graph(
         self,
         graph_path: Path,
         source_name: str,
         format: str = "nt",
         skip_named_individuals: bool = False,
+        use_virtuoso_api: bool = True,
+    ):
+        if use_virtuoso_api:
+            graph = self._get_rdf_graph_from_virtuoso_api(source_name)
+        else:
+            graph = self._get_rdf_graph_from_endpoint(source_name)
+
+        if skip_named_individuals:
+            graph = self.remove_named_individuals_from_graph(graph)
+
+        # write graph to tmpfile
+        graph.serialize(destination=graph_path, format=format, encoding="utf-8")
+        self.log.info(f"{source_name} writed to {graph_path}")
+
+        return graph_path
+
+    def _get_rdf_graph_from_virtuoso_api(
+        self,
+        source_name: str,
+    ):
+        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+
+        sparql_server = self.sls_config.mainconfig["sparql_server"]
+        virtuoso_url = sparql_server.get(
+            "virtuoso_url", sparql_server["url"].removesuffix("/sparql")
+        )
+        virtuoso_user = sparql_server["user"]
+        virtuoso_password = sparql_server["password"]
+
+        params = {"graph": graph_uri, "format": "application/rdf+json"}
+        response = requests.get(
+            f"{virtuoso_url}/sparql-graph-crud",
+            params=params,
+            auth=HTTPDigestAuth(virtuoso_user, virtuoso_password),
+        )
+        json = response.json()
+
+        graph = Graph()
+
+        for subj, pred_obj in json.items():
+            for pred, objs in pred_obj.items():
+                for obj in objs:
+                    s = URIRef(subj)
+                    p = URIRef(pred)
+                    if obj["type"] == "uri":
+                        o = URIRef(obj["value"])
+                    else:
+                        obj.pop("type")
+                        o = Literal(obj.pop("value"), **obj)
+                    graph.add((s, p, o))
+        return graph
+
+    def _get_rdf_graph_from_endpoint(
+        self,
+        source_name: str,
     ):
         graph_uri = self.sls_config.sources[source_name]["graphUri"]
 
@@ -247,18 +304,11 @@ class App(FastAPI):
                 sparql_url, virtuoso_user, virtuoso_password, query, "xml"
             )
 
-            if skip_named_individuals:
-                results = self.remove_named_individuals_from_grap(results)
-
             # concat subgraph to final graph
             graph += results
             offset += limit
 
-        # write graph to tmpfile
-        graph.serialize(destination=graph_path, format=format, encoding="utf-8")
-        self.log.info(f"{graph_uri} writed to {graph_path}")
-
-        return graph_path
+        return graph
 
     def upload_rdf_graph_to_endpoint(
         self, graph_path: Path, source_name: str, remove_graph: bool = False
@@ -272,7 +322,9 @@ class App(FastAPI):
         graph = RdfGraph(graph_path)
 
         sparql_server = self.sls_config.mainconfig["sparql_server"]
-        virtuoso_url = sparql_server["url"].removesuffix("/sparql")
+        virtuoso_url = sparql_server.get(
+            "virtuoso_url", sparql_server["url"].removesuffix("/sparql")
+        )
         virtuoso_user = sparql_server["user"]
         virtuoso_password = sparql_server["password"]
 
