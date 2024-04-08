@@ -16,6 +16,7 @@ rdflib = "^7.0.0"
 requests = "^2.31.0"
 colorlog = "^6.7.0"
 sparqlwrapper = "^2.0.0"
+pyodbc = "^5.1.0"
 
 
 [tool.poetry.group.dev.dependencies]
