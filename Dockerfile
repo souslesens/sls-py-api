@@ -1,6 +1,9 @@
+FROM askomics/virtuoso:7.2.9 AS virtuoso
 FROM docker.io/library/python:3.11-alpine
 
-RUN apk add --no-cache poetry
+COPY --from=virtuoso /usr/local/virtuoso-opensource/lib /usr/local/virtuoso-opensource/lib
+
+RUN apk add --no-cache poetry gcc g++ python3-dev unixodbc-dev
 
 WORKDIR /src
 COPY poetry.lock pyproject.toml README.md /src/
