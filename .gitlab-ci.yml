@@ -5,8 +5,6 @@ include:
     file:
       - "templates/base.yml"
       - "templates/no-duplicated-ci-pipelines.yml"
-      - "templates/lint/black.yml"
-      - "templates/tests/py3.yml"
       - "templates/create-release-on-heptapod.yml"
       - "templates/build-docker-image.yml"
 
@@ -14,18 +12,38 @@ default:
   tags:
     - dedibox
 
-black:
+variables:
+  POETRY_VIRTUALENVS_PATH: $CI_PROJECT_DIR/venv
+
+.base:
   image: python:3.11-alpine
-  script:
+  before_script:
+    - pip install -U poetry
+    - poetry install --only=dev
+  cache:
+    paths:
+      - venv
+
+.base-all:
+  image: python:3.11-alpine
+  before_script:
+    - apk add --update --no-cache gcc g++ python3-dev unixodbc-dev
     - pip install -U poetry
     - poetry install --with=dev
+  cache:
+    paths:
+      - venv
+
+black:
+  extends: .base
+  stage: lint
+  script:
     - poetry run black sls_api tests
 
 py3:
-  image: python:3.11-alpine
+  extends: .base-all
+  stage: tests
   script:
-    - pip install -U poetry
     - cp config.ini.default config.ini
-    - poetry install --with=dev
     - poetry run pytest -v tests
   artifacts: null
