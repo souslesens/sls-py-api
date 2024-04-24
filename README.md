@@ -1,5 +1,24 @@
 # SousLeSens - Python FastAPI
 
+## Dependencies
+
+### Virtuoso
+
+Install [virtuoso-opensource](https://github.com/openlink/virtuoso-opensource) following the
+`README.md`.
+
+```bash
+git clone https://github.com/openlink/virtuoso-opensource.git
+git checkout 7.2.9  # checkout same version that the target virtuoso
+./configure --prefix=~/virtuoso-opensource/build
+./autogen.sh
+./configure
+make -j $(grep -c '^processor' /proc/cpuinfo)
+make -j $(grep -c '^processor' /proc/cpuinfo) install
+```
+
+The needed lib `virtodbc_r.so` will be available under the `~/virtuoso-opensource/build/lib` directory.
+
 ## Install
 
 ```bash
