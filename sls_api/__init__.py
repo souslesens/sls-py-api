@@ -59,6 +59,7 @@ def get_rdf_graph(
             source,
             format=format,
             skip_named_individuals=skipNamedIndividuals,
+            method=app.config.get("main", "get_rdf_graph_method") or "sparql",
         )
     else:
         tmpfile = tmpdir.joinpath(f"{identifier}.{format}")
