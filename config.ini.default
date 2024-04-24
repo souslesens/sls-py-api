@@ -1,6 +1,14 @@
 [main]
 souslesens_config_dir = /PATH/TO/SOUSLESENSVOCABLES/config
 log_level = info
+get_rdf_graph_method = api
+
+[virtuoso]
+driver  = /usr/local/virtuoso-opensource/lib/virtodbc_r.so
+host = localhost
+isql_port = 1111
+user = dba
+password = dba
 
 [cors]
 origins = localhost,127.0.0.1

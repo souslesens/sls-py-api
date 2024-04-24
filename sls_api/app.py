@@ -3,6 +3,7 @@ from re import compile as re_compile
 from time import sleep
 
 import requests
+import pyodbc
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from rdflib import Graph, URIRef, Literal
@@ -215,12 +216,17 @@ class App(FastAPI):
         source_name: str,
         format: str = "nt",
         skip_named_individuals: bool = False,
-        use_virtuoso_api: bool = True,
+        method: str = "sparql",
     ):
-        if use_virtuoso_api:
+        self.log.info(f"Getting rdf graph with {method}")
+        if method == "api":
             graph = self._get_rdf_graph_from_virtuoso_api(source_name)
-        else:
+        elif method == "sparql":
             graph = self._get_rdf_graph_from_endpoint(source_name)
+        elif method == "isql":
+            graph = self._get_rdf_graph_from_isql(source_name)
+        else:
+            raise NotImplementedError(f"Method {method} is not implemented")
 
         if skip_named_individuals:
             graph = self.remove_named_individuals_from_graph(graph)
@@ -230,6 +236,48 @@ class App(FastAPI):
         self.log.info(f"{source_name} writed to {graph_path}")
 
         return graph_path
+
+    def _get_rdf_graph_from_isql(self, source_name: str):
+        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+
+        virtuoso_driver_path = Path(self.config.get("virtuoso", "driver"))
+
+        virtuoso_host = self.config.get("virtuoso", "host")
+        virtuoso_port = self.config.get("virtuoso", "isql_port")
+        virtuoso_user = self.config.get("virtuoso", "user")
+        virtuoso_password = self.config.get("virtuoso", "password")
+
+        conn_str = f"DRIVER={virtuoso_driver_path};HOST={virtuoso_host}:{virtuoso_port};UID={virtuoso_user};PWD={virtuoso_password}"
+
+        connection = pyodbc.connect(conn_str)
+        connection.setencoding(encoding="utf-8")
+        connection.setdecoding(pyodbc.SQL_CHAR, encoding="utf-8")
+        cursor = connection.cursor()
+
+        query = (
+            "SPARQL SELECT ?s ?p ?o ?is_uri ?datatype ?lang "
+            f"FROM <{graph_uri}> "
+            "WHERE { "
+            "?s ?p ?o "
+            "BIND(isUri(?o) AS ?is_uri) "
+            "BIND(datatype(?o) AS ?datatype) "
+            "BIND(lang(?o) AS ?lang) "
+            "}"
+        )
+
+        results = cursor.execute(query).fetchall()
+        graph = Graph()
+
+        for subj, pred, obj, is_uri, datatype, lang in results:
+            s = URIRef(subj)
+            p = URIRef(pred)
+            if is_uri:
+                o = URIRef(obj)
+            else:
+                o = Literal(obj, datatype=datatype, lang=lang)
+            graph.add((s, p, o))
+
+        return graph
 
     def _get_rdf_graph_from_virtuoso_api(
         self,
