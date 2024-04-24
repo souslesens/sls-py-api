@@ -2,6 +2,7 @@
 souslesens_config_dir = /PATH/TO/SOUSLESENSVOCABLES/config
 log_level = info
 get_rdf_graph_method = api
+chunk_size = 10_000_000
 
 [virtuoso]
 driver  = /usr/local/virtuoso-opensource/lib/virtodbc_r.so

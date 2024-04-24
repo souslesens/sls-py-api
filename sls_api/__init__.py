@@ -43,7 +43,7 @@ def get_rdf_graph(
     format: str = "nt",
     skipNamedIndividuals: bool = False,
 ):
-    limit = 1_000_000  # 1MB
+    limit = app.config.getint("main", "chunk_size") or 1_000_000  # 1MB
     user = app.add_sources_for_user(user)
     if not user.can_read(source):
         raise HTTPException(status_code=401, detail=f"Not authorized to read {source}")
