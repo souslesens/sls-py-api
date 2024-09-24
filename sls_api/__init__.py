@@ -43,43 +43,49 @@ def get_rdf_graph(
     format: str = "nt",
     skipNamedIndividuals: bool = False,
 ):
-    limit = app.config.getint("main", "chunk_size") or 1_000_000  # 1MB
-    user = app.add_sources_for_user(user)
-    if not user.can_read(source):
-        raise HTTPException(status_code=401, detail=f"Not authorized to read {source}")
+    try:
+        limit = app.config.getint("main", "chunk_size") or 1_000_000  # 1MB
+        user = app.add_sources_for_user(user)
+        if not user.can_read(source):
+            raise HTTPException(
+                status_code=401, detail=f"Not authorized to read {source}"
+            )
 
-    tmpdir = Path(gettempdir())
+        tmpdir = Path(gettempdir())
 
-    # first call, write graph to file
-    if not identifier:
-        identifier = str(ULID())
-        tmpfile = tmpdir.joinpath(f"{identifier}.{format}")
-        app.get_rdf_graph(
-            tmpfile,
-            source,
-            format=format,
-            skip_named_individuals=skipNamedIndividuals,
-            method=app.config.get("main", "get_rdf_graph_method") or "sparql",
-        )
-    else:
-        tmpfile = tmpdir.joinpath(f"{identifier}.{format}")
+        # first call, write graph to file
+        if not identifier:
+            identifier = str(ULID())
+            tmpfile = tmpdir.joinpath(f"{identifier}.{format}")
+            app.get_rdf_graph(
+                tmpfile,
+                source,
+                format=format,
+                skip_named_individuals=skipNamedIndividuals,
+                method=app.config.get("main", "get_rdf_graph_method") or "sparql",
+            )
+        else:
+            tmpfile = tmpdir.joinpath(f"{identifier}.{format}")
 
-    # Get a slice of the file
-    data = tmpfile.read_text()
-    chunk = data[offset : offset + limit]
+        # Get a slice of the file
+        data = tmpfile.read_text()
+        chunk = data[offset : offset + limit]
 
-    filesize = tmpfile.stat().st_size
-    if offset + limit >= filesize:
-        next_offset = None
-    else:
-        next_offset = offset + limit
+        filesize = tmpfile.stat().st_size
+        if offset + limit >= filesize:
+            next_offset = None
+        else:
+            next_offset = offset + limit
 
-    return {
-        "identifier": identifier,
-        "filesize": filesize,
-        "next_offset": next_offset,
-        "data": chunk,
-    }
+        return {
+            "identifier": identifier,
+            "filesize": filesize,
+            "next_offset": next_offset,
+            "data": chunk,
+        }
+    except Exception as e:
+        app.log.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.delete("/api/v1/rdf/graph")
@@ -87,14 +93,18 @@ def delete_rdf_graph(
     source: Annotated[str, Form()],
     user: Annotated[dict, Depends(verify_token)],
 ):
-    user = app.add_sources_for_user(user)
-    if not user.can_readwrite(source):
-        raise HTTPException(
-            status_code=401, detail=f"Not authorized to delete {source}"
-        )
+    try:
+        user = app.add_sources_for_user(user)
+        if not user.can_readwrite(source):
+            raise HTTPException(
+                status_code=401, detail=f"Not authorized to delete {source}"
+            )
 
-    app.delete_graph_from_endpoint(source)
-    return {"message": f"{source} deleted"}
+        app.delete_graph_from_endpoint(source)
+        return {"message": f"{source} deleted"}
+    except Exception as e:
+        app.log.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/api/v1/rdf/graph")
@@ -107,28 +117,34 @@ def post_rdf_graph(
     user: Annotated[dict, Depends(verify_token)],
     identifier: Annotated[str, Form()] = "",
 ):
-    user = app.add_sources_for_user(user)
-    if not user.can_readwrite(source):
-        raise HTTPException(status_code=401, detail=f"Not authorized to write {source}")
+    try:
+        user = app.add_sources_for_user(user)
+        if not user.can_readwrite(source):
+            raise HTTPException(
+                status_code=401, detail=f"Not authorized to write {source}"
+            )
 
-    if not identifier:
-        identifier = str(ULID())
-    tmpdir = Path(gettempdir())
-    ext = Path(data.filename).suffix
-    tmpfile = tmpdir.joinpath(f"{identifier}{ext}")
+        if not identifier:
+            identifier = str(ULID())
+        tmpdir = Path(gettempdir())
+        ext = Path(data.filename).suffix
+        tmpfile = tmpdir.joinpath(f"{identifier}{ext}")
 
-    if clean:
-        tmpfile.unlink()
+        if clean:
+            tmpfile.unlink()
+            return {"identifier": identifier}
+
+        with tmpfile.open("ab") as fp:
+            fp.write(data.file.read())
+
+        # last chunk, load data into triplestore
+        if last:
+            app.upload_rdf_graph_to_endpoint(tmpfile, source, remove_graph=replace)
+
+            # remove tmpfile
+            tmpfile.unlink()
+
         return {"identifier": identifier}
-
-    with tmpfile.open("ab") as fp:
-        fp.write(data.file.read())
-
-    # last chunk, load data into triplestore
-    if last:
-        app.upload_rdf_graph_to_endpoint(tmpfile, source, remove_graph=replace)
-
-        # remove tmpfile
-        tmpfile.unlink()
-
-    return {"identifier": identifier}
+    except Exception as e:
+        app.log.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
