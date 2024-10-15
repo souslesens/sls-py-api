@@ -255,11 +255,12 @@ class App(FastAPI):
         cursor = connection.cursor()
 
         query = (
-            "SPARQL SELECT ?s ?p ?o ?is_uri ?datatype ?lang "
+            "SPARQL SELECT ?s ?p ?o ?is_uri ?is_blank ?datatype ?lang "
             f"FROM <{graph_uri}> "
             "WHERE { "
             "?s ?p ?o "
             "BIND(isUri(?o) AS ?is_uri) "
+            "BIND(isBlank(?o) AS ?is_blank) "
             "BIND(datatype(?o) AS ?datatype) "
             "BIND(lang(?o) AS ?lang) "
             "}"
@@ -268,10 +269,10 @@ class App(FastAPI):
         results = cursor.execute(query).fetchall()
         graph = Graph()
 
-        for subj, pred, obj, is_uri, datatype, lang in results:
+        for subj, pred, obj, is_uri, is_blank, datatype, lang in results:
             s = URIRef(subj)
             p = URIRef(pred)
-            if is_uri:
+            if is_uri or is_blank:
                 o = URIRef(obj)
             else:
                 o = Literal(obj, datatype=datatype, lang=lang)
