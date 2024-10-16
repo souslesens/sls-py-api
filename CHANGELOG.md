@@ -1,3 +1,12 @@
+## Version 1.2.0 (2024-10-16)
+### 🎉 New features
+
+- add try/except around all api routes
+
+### 👷 Bug fixes
+
+- set blank nodes as uris
+
 ## Version 1.1.0 (2024-05-21)
 ### 🎉 New features
 
