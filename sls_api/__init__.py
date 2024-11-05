@@ -139,7 +139,12 @@ def post_rdf_graph(
 
         # last chunk, load data into triplestore
         if last:
-            app.upload_rdf_graph_to_endpoint(tmpfile, source, remove_graph=replace)
+            app.upload_rdf_graph(
+                tmpfile,
+                source,
+                remove_graph=replace,
+                method=app.config.get("main", "post_rdf_graph_method") or "api",
+            )
 
             # remove tmpfile
             tmpfile.unlink()

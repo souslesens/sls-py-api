@@ -359,13 +359,53 @@ class App(FastAPI):
 
         return graph
 
-    def upload_rdf_graph_to_endpoint(
-        self, graph_path: Path, source_name: str, remove_graph: bool = False
+    def upload_rdf_graph(
+        self,
+        graph_path: Path,
+        source_name: str,
+        remove_graph: bool = False,
+        method: str = "sparql",
     ):
         graph_uri = self.sls_config.sources[source_name]["graphUri"]
-
         if remove_graph:
+            self.log.info(f"Removing graph {graph_uri}")
             self.delete_graph_from_endpoint(source_name)
+
+        self.log.info(f"Uploading rdf graph with method {method}")
+        if method == "api":
+            self._upload_rdf_graph_with_virtuoso_api(graph_path, source_name)
+        elif method == "api_batched":
+            self._upload_rdf_graph_with_virtuoso_api_batched(graph_path, source_name)
+        else:
+            raise NotImplementedError(f"Method {method} is not implemented")
+
+    def _upload_rdf_graph_with_virtuoso_api(self, graph_path: Path, source_name: str):
+        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+        sparql_server = self.sls_config.mainconfig["sparql_server"]
+        virtuoso_url = sparql_server.get(
+            "virtuoso_url", sparql_server["url"].removesuffix("/sparql")
+        )
+        virtuoso_user = sparql_server["user"]
+        virtuoso_password = sparql_server["password"]
+
+        response = requests.post(
+            f"{virtuoso_url}/sparql-graph-crud-auth",
+            params={"graph-uri": graph_uri},
+            headers={"Content-type": "text/plain"},
+            data=graph_path.open("rb"),
+            auth=HTTPDigestAuth(virtuoso_user, virtuoso_password),
+        )
+        if not response.ok:
+            raise (
+                BaseException(
+                    f"Got {response.status_code} while posting graph {graph_uri}.\n{response.content}"
+                )
+            )
+
+    def _upload_rdf_graph_with_virtuoso_api_batched(
+        self, graph_path: Path, source_name: str
+    ):
+        graph_uri = self.sls_config.sources[source_name]["graphUri"]
 
         # parse uploaded file into rdfilb graph
         graph = RdfGraph(graph_path)
