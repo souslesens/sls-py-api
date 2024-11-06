@@ -1,3 +1,8 @@
+## Version 1.3.0 (2024-11-06)
+### 🎉 New features
+
+- add method for posting graphs (api or `api_batched)`
+
 ## Version 1.2.0 (2024-10-16)
 ### 🎉 New features
 
