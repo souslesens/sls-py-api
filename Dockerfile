@@ -17,4 +17,4 @@ COPY config.ini.default /src/config.ini
 EXPOSE 8000
 
 COPY --chmod=755 entrypoint.sh /entrypoint.sh
-ENTRYPOINT /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
