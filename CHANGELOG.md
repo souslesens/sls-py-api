@@ -1,3 +1,8 @@
+## Version 1.4.0 (2024-11-07)
+### 🎉 New features
+
+- add `sparql_load` method for posting graph
+
 ## Version 1.3.1 (2024-11-06)
 ### 🤖 Continuous integration
 
