@@ -1,4 +1,5 @@
 [main]
+api_url_for_virtuoso = http://localhost:8000
 souslesens_config_dir = /PATH/TO/SOUSLESENSVOCABLES/config
 log_level = info
 get_rdf_graph_method = api

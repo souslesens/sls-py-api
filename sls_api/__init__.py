@@ -1,8 +1,10 @@
+import tempfile
 from pathlib import Path
 from typing import Annotated
 from tempfile import gettempdir
 
 from fastapi import Depends, Form, Header, HTTPException, UploadFile
+from fastapi.staticfiles import StaticFiles
 from ulid import ULID
 
 
@@ -32,6 +34,12 @@ async def verify_token(authorization: Annotated[str, Header()]):
 @app.get("/")
 def read_root(user: Annotated[dict, Depends(verify_token)]):
     return {}
+
+
+tmp_dir = Path(tempfile.gettempdir())
+tmp_graph_dir = tmp_dir / Path("sls_api")
+tmp_graph_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/files", StaticFiles(directory=tmp_graph_dir))
 
 
 @app.get("/api/v1/rdf/graph")

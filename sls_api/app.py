@@ -1,5 +1,9 @@
+import random
+import shutil
+import tempfile
 from pathlib import Path
 from re import compile as re_compile
+from string import ascii_lowercase
 from time import sleep
 
 import requests
@@ -359,6 +363,23 @@ class App(FastAPI):
 
         return graph
 
+    def _clean_published_graph(self, tmp_graph_name):
+        tmp_dir = Path(tempfile.gettempdir())
+        tmp_graph_dir = tmp_dir / Path("sls_api")
+        tmp_graph_path = tmp_graph_dir / Path(tmp_graph_name)
+
+        tmp_graph_path.unlink(missing_ok=True)
+
+    def _publish_graph(self, graph_path: Path) -> str:
+        tmp_dir = Path(tempfile.gettempdir())
+        tmp_graph_dir = tmp_dir / Path("sls_api")
+        tmp_graph_name = "".join(random.choice(ascii_lowercase) for _ in range(20))
+        tmp_graph_path = tmp_graph_dir / Path(tmp_graph_name)
+
+        shutil.copy(graph_path, tmp_graph_path)
+
+        return tmp_graph_name
+
     def upload_rdf_graph(
         self,
         graph_path: Path,
@@ -376,8 +397,26 @@ class App(FastAPI):
             self._upload_rdf_graph_with_virtuoso_api(graph_path, source_name)
         elif method == "api_batched":
             self._upload_rdf_graph_with_virtuoso_api_batched(graph_path, source_name)
+        elif method == "sparql_load":
+            tmp_graph_name = self._publish_graph(graph_path)
+            base_url = self.config.get("main", "api_url_for_virtuoso")
+            graph_url = f"{base_url}/files/{tmp_graph_name}"
+            self._upload_rdf_graph_from_url(graph_url, source_name)
+            self._clean_published_graph(tmp_graph_name)
         else:
             raise NotImplementedError(f"Method {method} is not implemented")
+
+    def _upload_rdf_graph_from_url(self, graph_url: str, source_name: str):
+        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+
+        sparql_server = self.sls_config.mainconfig["sparql_server"]
+        sparql_url = sparql_server["url"]
+        virtuoso_user = sparql_server["user"]
+        virtuoso_password = sparql_server["password"]
+
+        query = f"LOAD <{graph_url}> INTO GRAPH <{graph_uri}>"
+
+        sparql_query(sparql_url, virtuoso_user, virtuoso_password, query)
 
     def _upload_rdf_graph_with_virtuoso_api(self, graph_path: Path, source_name: str):
         graph_uri = self.sls_config.sources[source_name]["graphUri"]
