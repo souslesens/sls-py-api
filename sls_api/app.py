@@ -223,6 +223,8 @@ class App(FastAPI):
         skip_named_individuals: bool = False,
         method: str = "sparql",
     ):
+        format = "xml" if format == "owl" else format
+
         self.log.info(f"Getting rdf graph with {method}")
         if method == "api":
             graph = self._get_rdf_graph_from_virtuoso_api(source_name)
