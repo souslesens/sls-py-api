@@ -22,8 +22,8 @@ from sls_api.utils import batched, sparql_query
 
 
 class App(FastAPI):
-    def __init__(self, config_path: str = "config.ini"):
-        super().__init__()
+    def __init__(self, config_path: str = "config.ini", openapi_tags=[]):
+        super().__init__(openapi_tags=openapi_tags)
 
         self.config_path = Path(config_path)
         self.config = self._get_config()

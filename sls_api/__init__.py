@@ -10,7 +10,14 @@ from ulid import ULID
 
 from sls_api.app import App
 
-app = App()
+tags_metadata = [
+    {"name": "misc", "description": ""},
+    {"name": "rdf", "description": "RDF related routes"},
+    {"name": "convert", "description": "Convert RDF serialization formats"},
+]
+
+
+app = App(openapi_tags=tags_metadata)
 
 
 async def verify_token(authorization: Annotated[str, Header()]):
@@ -31,7 +38,7 @@ async def verify_token(authorization: Annotated[str, Header()]):
     return user
 
 
-@app.get("/")
+@app.get("/", tags=["misc"])
 def read_root(user: Annotated[dict, Depends(verify_token)]):
     return {}
 
@@ -42,7 +49,7 @@ tmp_graph_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/files", StaticFiles(directory=tmp_graph_dir))
 
 
-@app.get("/api/v1/rdf/graph")
+@app.get("/api/v1/rdf/graph", tags=["rdf"])
 def get_rdf_graph(
     user: Annotated[dict, Depends(verify_token)],
     source: str,
@@ -96,7 +103,7 @@ def get_rdf_graph(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.delete("/api/v1/rdf/graph")
+@app.delete("/api/v1/rdf/graph", tags=["rdf"])
 def delete_rdf_graph(
     source: Annotated[str, Form()],
     user: Annotated[dict, Depends(verify_token)],
@@ -115,7 +122,7 @@ def delete_rdf_graph(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.post("/api/v1/rdf/graph")
+@app.post("/api/v1/rdf/graph", tags=["rdf"])
 def post_rdf_graph(
     last: Annotated[bool, Form()],
     clean: Annotated[bool, Form()],
