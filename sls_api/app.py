@@ -1,6 +1,7 @@
 import random
 import shutil
 import tempfile
+import json
 from pathlib import Path
 from re import compile as re_compile
 from string import ascii_lowercase
@@ -10,7 +11,7 @@ import requests
 import pyodbc
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from rdflib import Graph, URIRef, Literal
+from rdflib import Graph, URIRef, Literal, XSD
 from rdflib.namespace import OWL
 from requests.auth import HTTPDigestAuth
 
@@ -486,3 +487,35 @@ class App(FastAPI):
                     f"\nGot {response.status_code} while posting graph "
                     f"{graph_uri}:\n  {response.content}"
                 )
+
+    def _guess_triple_type(self, value: str) -> URIRef | Literal:
+        if value.startswith("http"):
+            return URIRef(value)
+        if type(value) == int:
+            return Literal(value, datatype=XSD.integer)
+        if type(value) == float:
+            return Literal(value, datatype=XSD.float)
+
+        return Literal(value)
+
+    def _feed_graph_with_sls_data(self, data: list, graph: RdfGraph) -> None:
+        for elem in data:
+            graph.add(
+                (
+                    URIRef(elem["subject"]),
+                    URIRef(elem["predicate"]),
+                    self._guess_triple_type(elem["object"]),
+                )
+            )
+
+    def convert_rdf_format(self, data, input_format, output_format) -> str:
+        graph = RdfGraph()
+
+        if input_format == "sls":
+            # create a rdf graph from sls custom format
+            self._feed_graph_with_sls_data(json.loads(data), graph)
+        else:
+            graph.parse(data, format=input_format)
+
+        result = graph.serialize(format=output_format, encoding="utf-8").decode()
+        return result

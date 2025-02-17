@@ -1,13 +1,13 @@
 import tempfile
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 from tempfile import gettempdir
 
 from fastapi import Depends, Form, Header, HTTPException, UploadFile
 from fastapi.staticfiles import StaticFiles
 from ulid import ULID
 
-
+from sls_api.typing import ResponseConvert, RdfFormat, SlsRdfFormat
 from sls_api.app import App
 
 tags_metadata = [
@@ -47,6 +47,19 @@ tmp_dir = Path(tempfile.gettempdir())
 tmp_graph_dir = tmp_dir / Path("sls_api")
 tmp_graph_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/files", StaticFiles(directory=tmp_graph_dir))
+
+
+@app.post("/api/v1/rdf/convert", tags=["convert"])
+def convert_rdf_format(
+    _: Annotated[dict, Depends(verify_token)],
+    data: UploadFile,
+    input_format: Literal[RdfFormat, SlsRdfFormat] = "sls",
+    output_format: Literal[RdfFormat] = "turtle",
+) -> ResponseConvert:
+    raw_data = data.file.read()
+    result = app.convert_rdf_format(raw_data, input_format, output_format)
+
+    return {"data": result}
 
 
 @app.get("/api/v1/rdf/graph", tags=["rdf"])
