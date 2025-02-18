@@ -1,3 +1,9 @@
+## Version 1.5.0 (2025-02-18)
+### 🎉 New features
+
+- add /api/v1/rdf/convert route
+- add `tags_metadata`
+
 ## Version 1.4.0 (2024-11-07)
 ### 🎉 New features
 
