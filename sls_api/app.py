@@ -2,6 +2,7 @@ import random
 import shutil
 import tempfile
 import json
+from datetime import datetime
 from pathlib import Path
 from re import compile as re_compile
 from string import ascii_lowercase
@@ -11,7 +12,7 @@ import requests
 import pyodbc
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from rdflib import Graph, URIRef, Literal, XSD
+from rdflib import Graph, URIRef, Literal, XSD, BNode
 from rdflib.namespace import OWL
 from requests.auth import HTTPDigestAuth
 
@@ -19,7 +20,7 @@ from sls_api.config import SlsConfigParser, SlsConfig
 from sls_api.graph import RdfGraph
 from sls_api.logging import log
 from sls_api.users import User
-from sls_api.utils import batched, sparql_query
+from sls_api.utils import batched, sparql_query, get_uri_from_str, guess_triple_type
 
 
 class App(FastAPI):
@@ -488,34 +489,29 @@ class App(FastAPI):
                     f"{graph_uri}:\n  {response.content}"
                 )
 
-    def _guess_triple_type(self, value: str) -> URIRef | Literal:
-        if value.startswith("http"):
-            return URIRef(value)
-        if type(value) == int:
-            return Literal(value, datatype=XSD.integer)
-        if type(value) == float:
-            return Literal(value, datatype=XSD.float)
-
-        return Literal(value)
-
     def _feed_graph_with_sls_data(self, data: list, graph: RdfGraph) -> None:
         for elem in data:
             graph.add(
                 (
-                    URIRef(elem["subject"]),
-                    URIRef(elem["predicate"]),
-                    self._guess_triple_type(elem["object"]),
+                    get_uri_from_str(elem["subject"], graph),
+                    get_uri_from_str(elem["predicate"], graph),
+                    guess_triple_type(elem["object"], graph),
                 )
             )
 
-    def convert_rdf_format(self, data, input_format, output_format) -> str:
+    def convert_rdf_format(self, raw_data, input_format, output_format) -> str:
         graph = RdfGraph()
 
         if input_format == "sls":
             # create a rdf graph from sls custom format
-            self._feed_graph_with_sls_data(json.loads(data), graph)
+            json_data = json.loads(raw_data)
+            prefixes = json_data["prefixes"]
+            for prefix, uri in prefixes.items():
+                graph.bind(prefix, URIRef(uri))
+            data = json_data["data"]
+            self._feed_graph_with_sls_data(data, graph)
         else:
-            graph.parse(data, format=input_format)
+            graph.parse(raw_data, format=input_format)
 
         result = graph.serialize(format=output_format, encoding="utf-8").decode()
         return result
