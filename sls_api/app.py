@@ -32,9 +32,11 @@ class App(FastAPI):
 
         self.log = log(self.config.get("main", "log_level"))
 
-        self.authorization_pattern = re_compile(
-            r"^(?P<scheme>[^\s]+)\s+(?P<token>[^$]+)"
-        )
+        self.regexp = {
+            "authorization_pattern": re_compile(
+                r"^(?P<scheme>[^\s]+)\s+(?P<token>[^$]+)"
+            ),
+        }
 
         self.add_middleware(
             CORSMiddleware,

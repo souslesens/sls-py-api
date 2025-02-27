@@ -21,7 +21,7 @@ app = App(openapi_tags=tags_metadata)
 
 
 async def verify_token(authorization: Annotated[str, Header()]):
-    output = app.authorization_pattern.match(authorization)
+    output = app.regexp["authorization_pattern"].match(authorization)
     if output is None:
         raise HTTPException(
             status_code=400, detail="The specified Authorization is not valid"
