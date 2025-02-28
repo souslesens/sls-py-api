@@ -1,3 +1,16 @@
+## Version 1.6.0 (2025-02-28)
+### 🎉 New features
+
+- improve convert route
+
+### 🗜️ Refactoring
+
+- store compiled regexp in an object
+
+### 🧪 Tests
+
+- test `get_uri_from_str` and `guess_triple_type`
+
 ## Version 1.5.0 (2025-02-18)
 ### 🎉 New features
 
