@@ -1,3 +1,8 @@
+## Version 1.6.1 (2025-06-25)
+### 👷 Bug fixes
+
+- Dockerfile: add --no-root option for latest version of poetry
+
 ## Version 1.6.0 (2025-02-28)
 ### 🎉 New features
 
