@@ -9,6 +9,7 @@ from string import ascii_lowercase
 from time import sleep
 
 import requests
+import dateparser
 import pyodbc
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -279,6 +280,10 @@ class App(FastAPI):
             if is_uri or is_blank:
                 o = URIRef(obj)
             else:
+                if datatype == "http://www.w3.org/2001/XMLSchema#dateTime":
+                    parsed_obj = dateparser.parse(obj)
+                    if parsed_obj:
+                        obj = parsed_obj.strftime("%Y-%m-%dT%H:%M:%S")
                 o = Literal(obj, datatype=datatype, lang=lang)
             graph.add((s, p, o))
 
