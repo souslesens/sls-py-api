@@ -17,7 +17,7 @@ from rdflib import Graph, URIRef, Literal, XSD, BNode
 from rdflib.namespace import OWL
 from requests.auth import HTTPDigestAuth
 
-from sls_api.config import SlsConfigParser, SlsConfig
+from sls_api.config import SlsConfigParser
 from sls_api.graph import RdfGraph
 from sls_api.logging import log
 from sls_api.users import User
@@ -69,14 +69,7 @@ class App(FastAPI):
         parser.read_file(self.config_path.open())
         return parser
 
-    @property
-    def sls_config(self) -> SlsConfig:
-        path = Path(self.config.get("main", "souslesens_config_dir")).expanduser()
-        return SlsConfig(path)
-
-
     def get_user_from_token(self, token: str) -> User:
-
         api_base_url = self.config.get("main", "souslesens_api_url")
         url = f"{api_base_url}/users/me"
         headers = {"Authorization": f"Bearer {token}"}
@@ -106,7 +99,6 @@ class App(FastAPI):
     def add_sources_for_user(self, user: User) -> User:
         user.set_sources(self._get_user_sources(user))
         return user
-
 
     def _get_user_sources(self, user: User) -> dict | None:
         profiles = self.get_profiles(user.token)
@@ -172,10 +164,10 @@ class App(FastAPI):
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
 
-        sparql_server = self.sls_config.mainconfig["sparql_server"]
-        sparql_url = sparql_server["url"]
-        virtuoso_user = sparql_server["user"]
-        virtuoso_password = sparql_server["password"]
+        sparql_url = self.config.get("virtuoso", "sparql_url")
+
+        virtuoso_user = self.config.get("virtuoso", "user")
+        virtuoso_password = self.config.get("virtuoso", "password")
 
         query = f"""SELECT count(*) as ?total
         FROM <{graph_uri}>
@@ -194,12 +186,11 @@ class App(FastAPI):
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
 
-        sparql_server = self.sls_config.mainconfig["sparql_server"]
-        virtuoso_url = sparql_server.get(
-            "virtuoso_url", sparql_server["url"].removesuffix("/sparql")
-        )
-        virtuoso_user = sparql_server["user"]
-        virtuoso_password = sparql_server["password"]
+        sparql_url = self.config.get("virtuoso", "sparql_url")
+        virtuoso_url = sparql_url.removesuffix("/sparql")
+
+        virtuoso_user = self.config.get("virtuoso", "user")
+        virtuoso_password = self.config.get("virtuoso", "password")
 
         self.log.info(f"removing {graph_uri}…")
 
@@ -305,12 +296,11 @@ class App(FastAPI):
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
 
-        sparql_server = self.sls_config.mainconfig["sparql_server"]
-        virtuoso_url = sparql_server.get(
-            "virtuoso_url", sparql_server["url"].removesuffix("/sparql")
-        )
-        virtuoso_user = sparql_server["user"]
-        virtuoso_password = sparql_server["password"]
+        sparql_url = self.config.get("virtuoso", "sparql_url")
+        virtuoso_user = self.config.get("virtuoso", "user")
+        virtuoso_password = self.config.get("virtuoso", "password")
+
+        virtuoso_url = sparql_url.removesuffix("/sparql")
 
         params = {"graph": graph_uri, "format": "application/rdf+json"}
         response = requests.get(
@@ -343,10 +333,9 @@ class App(FastAPI):
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
 
-        sparql_server = self.sls_config.mainconfig["sparql_server"]
-        sparql_url = sparql_server["url"]
-        virtuoso_user = sparql_server["user"]
-        virtuoso_password = sparql_server["password"]
+        sparql_url = self.config.get("virtuoso", "sparql_url")
+        virtuoso_user = self.config.get("virtuoso", "user")
+        virtuoso_password = self.config.get("virtuoso", "password")
 
         limit = self.config.getint("rdf", "batch_size")
         graph_size = self._get_graph_size(user, source_name)

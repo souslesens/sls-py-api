@@ -1,6 +1,5 @@
 [main]
 api_url_for_virtuoso = http://localhost:8000
-souslesens_config_dir = /PATH/TO/SOUSLESENSVOCABLES/config
 souslesens_api_url = http://localhost:3010/api/v1
 log_level = info
 get_rdf_graph_method = api
@@ -9,6 +8,7 @@ chunk_size = 10_000_000
 
 [virtuoso]
 driver  = /usr/local/virtuoso-opensource/lib/virtodbc_r.so
+sparql_url = http://localhost:8890/sparql
 host = localhost
 isql_port = 1111
 user = dba
