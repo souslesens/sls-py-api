@@ -152,25 +152,31 @@ class App(FastAPI):
     def _get_permission_from_profile(
         self, user_profiles: dict, source_tree: str
     ) -> str:
+
+        final_permission = "forbidden"
         for profile in user_profiles.values():
             permissions = []
-
             sources_access_control = profile["sourcesAccessControl"]
             for key, value in sources_access_control.items():
                 if source_tree.startswith(key):
                     permissions.append((key, value))
 
-            formal_label = self.sls_config.mainconfig[
-                "formalOntologySourceLabel"
-            ].strip()
-            if len(formal_label) > 0:
-                permissions.append((formal_label, "read"))
-
             permissions = sorted(permissions, key=lambda k: len(k[1]), reverse=True)
             if len(permissions) > 0:
-                return permissions[0][1]
+                final_permission = self.get_updated_permission(final_permission, permissions[0][1])
 
-        return ""
+        return final_permission
+
+    @staticmethod
+    def get_updated_permission(existing_perm, new_perm):
+        if existing_perm == "forbidden":
+            return new_perm
+
+        if existing_perm == "read" and new_perm == "forbidden":
+            return "read"
+
+        return "readwrite"
+
 
     def _get_graph_size(self, source_name: str):
         graph_uri = self.sls_config.sources[source_name]["graphUri"]

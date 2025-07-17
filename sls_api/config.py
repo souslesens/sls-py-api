@@ -21,7 +21,6 @@ class SlsConfig:
 
         self.mainconfig = self._get_sls_config("mainConfig.json")
         self.sources = self._get_sls_config("sources.json")
-        self.profiles = self._get_sls_config("profiles.json")
 
     def _get_sls_config(self, file_name: str) -> dict:
         """Read and parse the specified SousLeSens configuration file
