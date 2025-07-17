@@ -1,3 +1,35 @@
+## Version 2.0.0 (2025-07-17)
+### 🎉 New features
+
+- add /api/v1/health route
+- add token to User object
+- get profiles from souslesens API
+- get sources from souslesens API
+- get user info from sls api
+- remove unused root route
+
+### 👷 Bug fixes
+
+- _get_permission_from_profile method
+- correctly raise HTTPException errors
+- parse and format date using dateparser
+
+### 🗜️ Refactoring
+
+- don't use admin-specific code for disabled auth
+- *BREAKING CHANGE* don't use mainConfig.json to get souslesens configuration
+- remove useless _admin_user property
+
+### 🧪 Tests
+
+- remove TestSlsConfig
+- remove useless test
+- update tests
+
+### 🔧 Build process or tool changes
+
+- pkg: install dateparser
+
 ## Version 1.6.1 (2025-06-25)
 ### 👷 Bug fixes
 
