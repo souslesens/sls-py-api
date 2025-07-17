@@ -38,6 +38,11 @@ async def verify_token(authorization: Annotated[str, Header()]):
     return user
 
 
+@app.get("/api/v1/health", tags=["misc"])
+def health():
+    return {"health": "ok"}
+
+
 @app.get("/", tags=["misc"])
 def read_root(user: Annotated[dict, Depends(verify_token)]):
     return {}
