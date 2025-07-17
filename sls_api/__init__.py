@@ -31,8 +31,9 @@ async def verify_token(authorization: Annotated[str, Header()]):
         raise HTTPException(
             status_code=405, detail="The only authorized auth scheme is Bearer"
         )
-
-    user = app.get_user_from_token(output.group("token"))
+    token = output.group("token")
+    user = app.get_user_from_token(token)
+    user.token = token
     if not user:
         raise HTTPException(status_code=401, detail="You are not authorized")
     return user

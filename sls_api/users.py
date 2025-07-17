@@ -18,6 +18,7 @@ class User:
     groups: list
     id: str
     login: str
+    token: str = ""
     allowSourceCreation: bool = False
     maxNumberCreatedSource: int = 5
 
