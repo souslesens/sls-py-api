@@ -15,14 +15,9 @@ class User:
         Store the sources which are readable for the user
     """
 
-    _type: str
     groups: list
     id: str
     login: str
-    name: str
-    password: str
-    source: str
-    token: str
     allowSourceCreation: bool = False
     maxNumberCreatedSource: int = 5
 
@@ -42,7 +37,7 @@ class User:
         )
 
     def is_admin(self) -> bool:
-        return self.name == "admin" or "admin" in self.groups
+        return self.login == "admin" or "admin" in self.groups
 
     def set_sources(self, sources: dict):
         self.sources = sources

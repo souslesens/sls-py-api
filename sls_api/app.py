@@ -90,12 +90,13 @@ class App(FastAPI):
         if self.sls_config.mainconfig["auth"] == "disabled":
             return User(**self._admin_user)
 
-        for user in self.sls_config.users.values():
-            if user.get("token", None) == token:
-                # sometimes, name is not present in users.json file
-                if not "name" in user:
-                    user["name"] = user["id"]
-                return User(**user)
+        api_base_url = self.config.get("main", "souslesens_api_url")
+        url = f"{api_base_url}/users/me"
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = requests.get(url, headers=headers)
+        user = response.json()
+        return User(**user)
 
     def add_sources_for_user(self, user: User) -> User:
         user.set_sources(self._get_user_sources(user))
