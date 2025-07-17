@@ -103,6 +103,15 @@ class App(FastAPI):
         profiles = response.json()["resources"]
         return profiles
 
+    def get_sources(self, token: str) -> dict:
+        api_base_url = self.config.get("main", "souslesens_api_url")
+        url = f"{api_base_url}/sources"
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = requests.get(url, headers=headers)
+        sources = response.json()["resources"]
+        return sources
+
     def add_sources_for_user(self, user: User) -> User:
         user.set_sources(self._get_user_sources(user))
         return user
@@ -116,11 +125,10 @@ class App(FastAPI):
 
     def _get_user_sources(self, user: User) -> dict | None:
         profiles = self.get_profiles(user.token)
-        sources = self.sls_config.sources  # TODO: get sources from souslesens API
+        sources = self.get_sources(user.token)
 
         if user.is_admin():
             return self._get_admin_sources()
-
 
         all_access_control = {}
         for identifier, source in sources.items():
@@ -152,7 +160,6 @@ class App(FastAPI):
     def _get_permission_from_profile(
         self, user_profiles: dict, source_tree: str
     ) -> str:
-
         final_permission = "forbidden"
         for profile in user_profiles.values():
             permissions = []
@@ -163,7 +170,9 @@ class App(FastAPI):
 
             permissions = sorted(permissions, key=lambda k: len(k[1]), reverse=True)
             if len(permissions) > 0:
-                final_permission = self.get_updated_permission(final_permission, permissions[0][1])
+                final_permission = self.get_updated_permission(
+                    final_permission, permissions[0][1]
+                )
 
         return final_permission
 
@@ -177,9 +186,9 @@ class App(FastAPI):
 
         return "readwrite"
 
-
-    def _get_graph_size(self, source_name: str):
-        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+    def _get_graph_size(self, user: User, source_name: str):
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
 
         sparql_server = self.sls_config.mainconfig["sparql_server"]
         sparql_url = sparql_server["url"]
@@ -199,8 +208,9 @@ class App(FastAPI):
         )
         return result
 
-    def delete_graph_from_endpoint(self, source_name: str):
-        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+    def delete_graph_from_endpoint(self, user: User, source_name: str):
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
 
         sparql_server = self.sls_config.mainconfig["sparql_server"]
         virtuoso_url = sparql_server.get(
@@ -231,6 +241,7 @@ class App(FastAPI):
 
     def get_rdf_graph(
         self,
+        user: User,
         graph_path: Path,
         source_name: str,
         format: str = "nt",
@@ -239,11 +250,11 @@ class App(FastAPI):
     ):
         self.log.info(f"Getting rdf graph with {method}")
         if method == "api":
-            graph = self._get_rdf_graph_from_virtuoso_api(source_name)
+            graph = self._get_rdf_graph_from_virtuoso_api(user, source_name)
         elif method == "sparql":
-            graph = self._get_rdf_graph_from_endpoint(source_name)
+            graph = self._get_rdf_graph_from_endpoint(user, source_name)
         elif method == "isql":
-            graph = self._get_rdf_graph_from_isql(source_name)
+            graph = self._get_rdf_graph_from_isql(user, source_name)
         else:
             raise NotImplementedError(f"Method {method} is not implemented")
 
@@ -256,8 +267,9 @@ class App(FastAPI):
 
         return graph_path
 
-    def _get_rdf_graph_from_isql(self, source_name: str):
-        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+    def _get_rdf_graph_from_isql(self, user: User, source_name: str):
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
 
         virtuoso_driver_path = Path(self.config.get("virtuoso", "driver"))
 
@@ -305,9 +317,11 @@ class App(FastAPI):
 
     def _get_rdf_graph_from_virtuoso_api(
         self,
+        user: User,
         source_name: str,
     ):
-        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
 
         sparql_server = self.sls_config.mainconfig["sparql_server"]
         virtuoso_url = sparql_server.get(
@@ -341,9 +355,11 @@ class App(FastAPI):
 
     def _get_rdf_graph_from_endpoint(
         self,
+        user: User,
         source_name: str,
     ):
-        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
 
         sparql_server = self.sls_config.mainconfig["sparql_server"]
         sparql_url = sparql_server["url"]
@@ -351,7 +367,7 @@ class App(FastAPI):
         virtuoso_password = sparql_server["password"]
 
         limit = self.config.getint("rdf", "batch_size")
-        graph_size = self._get_graph_size(source_name)
+        graph_size = self._get_graph_size(user, source_name)
         offset = 0
 
         graph = Graph()
@@ -401,32 +417,37 @@ class App(FastAPI):
 
     def upload_rdf_graph(
         self,
+        user: User,
         graph_path: Path,
         source_name: str,
         remove_graph: bool = False,
         method: str = "sparql",
     ):
-        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
         if remove_graph:
             self.log.info(f"Removing graph {graph_uri}")
-            self.delete_graph_from_endpoint(source_name)
+            self.delete_graph_from_endpoint(user, source_name)
 
         self.log.info(f"Uploading rdf graph with method {method}")
         if method == "api":
-            self._upload_rdf_graph_with_virtuoso_api(graph_path, source_name)
+            self._upload_rdf_graph_with_virtuoso_api(user, graph_path, source_name)
         elif method == "api_batched":
-            self._upload_rdf_graph_with_virtuoso_api_batched(graph_path, source_name)
+            self._upload_rdf_graph_with_virtuoso_api_batched(
+                user, graph_path, source_name
+            )
         elif method == "sparql_load":
             tmp_graph_name = self._publish_graph(graph_path)
             base_url = self.config.get("main", "api_url_for_virtuoso")
             graph_url = f"{base_url}/files/{tmp_graph_name}"
-            self._upload_rdf_graph_from_url(graph_url, source_name)
+            self._upload_rdf_graph_from_url(user, graph_url, source_name)
             self._clean_published_graph(tmp_graph_name)
         else:
             raise NotImplementedError(f"Method {method} is not implemented")
 
-    def _upload_rdf_graph_from_url(self, graph_url: str, source_name: str):
-        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+    def _upload_rdf_graph_from_url(self, user: User, graph_url: str, source_name: str):
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
 
         sparql_server = self.sls_config.mainconfig["sparql_server"]
         sparql_url = sparql_server["url"]
@@ -437,8 +458,11 @@ class App(FastAPI):
 
         sparql_query(sparql_url, virtuoso_user, virtuoso_password, query)
 
-    def _upload_rdf_graph_with_virtuoso_api(self, graph_path: Path, source_name: str):
-        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+    def _upload_rdf_graph_with_virtuoso_api(
+        self, user: User, graph_path: Path, source_name: str
+    ):
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
         sparql_server = self.sls_config.mainconfig["sparql_server"]
         virtuoso_url = sparql_server.get(
             "virtuoso_url", sparql_server["url"].removesuffix("/sparql")
@@ -461,9 +485,10 @@ class App(FastAPI):
             )
 
     def _upload_rdf_graph_with_virtuoso_api_batched(
-        self, graph_path: Path, source_name: str
+        self, user: User, graph_path: Path, source_name: str
     ):
-        graph_uri = self.sls_config.sources[source_name]["graphUri"]
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
 
         # parse uploaded file into rdfilb graph
         graph = RdfGraph(graph_path)

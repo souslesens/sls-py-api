@@ -87,6 +87,7 @@ def get_rdf_graph(
             identifier = str(ULID())
             tmpfile = tmpdir.joinpath(f"{identifier}.{format}")
             app.get_rdf_graph(
+                user,
                 tmpfile,
                 source,
                 format=format,
@@ -131,7 +132,7 @@ def delete_rdf_graph(
                 status_code=401, detail=f"Not authorized to delete {source}"
             )
 
-        app.delete_graph_from_endpoint(source)
+        app.delete_graph_from_endpoint(user, source)
         return {"message": f"{source} deleted"}
     except Exception as e:
         app.log.exception(e)
@@ -173,6 +174,7 @@ def post_rdf_graph(
         # last chunk, load data into triplestore
         if last:
             app.upload_rdf_graph(
+                user,
                 tmpfile,
                 source,
                 remove_graph=replace,
