@@ -112,7 +112,9 @@ def get_rdf_graph(
             "data": chunk,
         }
     except Exception as e:
-        app.log.error(e)
+        app.log.exception(e)
+        if isinstance(e, HTTPException):
+            raise
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -131,7 +133,9 @@ def delete_rdf_graph(
         app.delete_graph_from_endpoint(source)
         return {"message": f"{source} deleted"}
     except Exception as e:
-        app.log.error(e)
+        app.log.exception(e)
+        if isinstance(e, HTTPException):
+            raise
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -179,5 +183,7 @@ def post_rdf_graph(
 
         return {"identifier": identifier}
     except Exception as e:
-        app.log.error(e)
+        app.log.exception(e)
+        if isinstance(e, HTTPException):
+            raise
         raise HTTPException(status_code=500, detail="Internal server error")
