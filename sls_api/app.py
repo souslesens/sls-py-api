@@ -94,6 +94,15 @@ class App(FastAPI):
         user = response.json()
         return User(**user)
 
+    def get_profiles(self, token: str) -> dict:
+        api_base_url = self.config.get("main", "souslesens_api_url")
+        url = f"{api_base_url}/profiles"
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = requests.get(url, headers=headers)
+        profiles = response.json()["resources"]
+        return profiles
+
     def add_sources_for_user(self, user: User) -> User:
         user.set_sources(self._get_user_sources(user))
         return user
@@ -106,13 +115,12 @@ class App(FastAPI):
         return admin_sources
 
     def _get_user_sources(self, user: User) -> dict | None:
-        profiles = self.sls_config.profiles
-        sources = self.sls_config.sources
+        profiles = self.get_profiles(user.token)
+        sources = self.sls_config.sources  # TODO: get sources from souslesens API
 
         if user.is_admin():
             return self._get_admin_sources()
 
-        user_profiles = {k: v for k, v in profiles.items() if k in user.groups}
 
         all_access_control = {}
         for identifier, source in sources.items():
@@ -123,7 +131,7 @@ class App(FastAPI):
                 group = "DEFAULT"
 
             permission = self._get_permission_from_profile(
-                user_profiles,
+                profiles,
                 "/".join([source.get("schemaType"), group, name]),
             )
 
