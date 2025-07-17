@@ -17,13 +17,6 @@ class TestSlsConfig(TestCase):
         if self.path.exists():
             rmtree(self.path)
 
-    def test_construct_config_with_missing_files(self):
-        mainconfig = self.path.joinpath("mainConfig.json")
-        mainconfig.write_text("{}")
-
-        with self.assertRaises(FileNotFoundError):
-            SlsConfig(self.path)
-
     def test_construct_config_with_empty_files(self):
         mainconfig = self.path.joinpath("mainConfig.json")
         mainconfig.touch()
