@@ -76,8 +76,6 @@ class App(FastAPI):
 
 
     def get_user_from_token(self, token: str) -> User:
-        if self.sls_config.mainconfig["auth"] == "disabled":
-            return User(**self._admin_user)
 
         api_base_url = self.config.get("main", "souslesens_api_url")
         url = f"{api_base_url}/users/me"
@@ -109,19 +107,10 @@ class App(FastAPI):
         user.set_sources(self._get_user_sources(user))
         return user
 
-    def _get_admin_sources(self) -> dict:
-        admin_sources = {}
-        for identifier, source in self.sls_config.sources.items():
-            source["accessControl"] = "readwrite"
-            admin_sources[identifier] = source
-        return admin_sources
 
     def _get_user_sources(self, user: User) -> dict | None:
         profiles = self.get_profiles(user.token)
         sources = self.get_sources(user.token)
-
-        if user.is_admin():
-            return self._get_admin_sources()
 
         all_access_control = {}
         for identifier, source in sources.items():
