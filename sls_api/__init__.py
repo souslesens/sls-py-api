@@ -43,11 +43,6 @@ def health():
     return {"health": "ok"}
 
 
-@app.get("/", tags=["misc"])
-def read_root(user: Annotated[dict, Depends(verify_token)]):
-    return {}
-
-
 tmp_dir = Path(tempfile.gettempdir())
 tmp_graph_dir = tmp_dir / Path("sls_api")
 tmp_graph_dir.mkdir(parents=True, exist_ok=True)
