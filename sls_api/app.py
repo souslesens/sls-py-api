@@ -74,13 +74,6 @@ class App(FastAPI):
         path = Path(self.config.get("main", "souslesens_config_dir")).expanduser()
         return SlsConfig(path)
 
-    @property
-    def _admin_user(self) -> dict:
-        return {
-            "groups": ["admin"],
-            "id": "admin",
-            "login": "admin",
-        }
 
     def get_user_from_token(self, token: str) -> User:
         if self.sls_config.mainconfig["auth"] == "disabled":
