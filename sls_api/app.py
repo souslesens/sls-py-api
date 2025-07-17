@@ -76,14 +76,9 @@ class App(FastAPI):
     @property
     def _admin_user(self) -> dict:
         return {
-            "_type": "user",
             "groups": ["admin"],
             "id": "admin",
             "login": "admin",
-            "name": "admin",
-            "password": "admin",
-            "source": "json",
-            "token": "admin",
         }
 
     def get_user_from_token(self, token: str) -> User:

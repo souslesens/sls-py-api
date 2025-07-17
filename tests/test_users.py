@@ -6,14 +6,9 @@ from sls_api.users import User
 
 class TestUser(TestCase):
     DEFAULT_VALUES = {
-        "_type": "user",
         "groups": [],
         "id": "admin",
         "login": "admin",
-        "name": "admin",
-        "password": "admin",
-        "source": "admin",
-        "token": "admin",
         "allowSourceCreation": False,
         "maxNumberCreatedSource": 5,
     }
@@ -39,14 +34,14 @@ class TestUser(TestCase):
 
     def test_standard_user_is_not_admin(self):
         values = deepcopy(self.DEFAULT_VALUES)
-        values["name"] = "🍌"
+        values["login"] = "🍌"
 
         user = User(**values)
         self.assertFalse(user.is_admin())
 
     def test_standard_user_is_admin(self):
         values = deepcopy(self.DEFAULT_VALUES)
-        values["name"] = "🍅"
+        values["login"] = "🍅"
         values["groups"].append("admin")
 
         user = User(**values)
