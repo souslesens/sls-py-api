@@ -420,10 +420,9 @@ class App(FastAPI):
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
 
-        sparql_server = self.sls_config.mainconfig["sparql_server"]
-        sparql_url = sparql_server["url"]
-        virtuoso_user = sparql_server["user"]
-        virtuoso_password = sparql_server["password"]
+        sparql_url = self.config.get("virtuoso", "sparql_url")
+        virtuoso_user = self.config.get("virtuoso", "user")
+        virtuoso_password = self.config.get("virtuoso", "password")
 
         query = f"LOAD <{graph_url}> INTO GRAPH <{graph_uri}>"
 
@@ -434,12 +433,11 @@ class App(FastAPI):
     ):
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
-        sparql_server = self.sls_config.mainconfig["sparql_server"]
-        virtuoso_url = sparql_server.get(
-            "virtuoso_url", sparql_server["url"].removesuffix("/sparql")
-        )
-        virtuoso_user = sparql_server["user"]
-        virtuoso_password = sparql_server["password"]
+
+        sparql_url = self.config.get("virtuoso", "sparql_url")
+        virtuoso_url = sparql_url.removesuffix("/sparql")
+        virtuoso_user = self.config.get("virtuoso", "user")
+        virtuoso_password = self.config.get("virtuoso", "password")
 
         response = requests.post(
             f"{virtuoso_url}/sparql-graph-crud-auth",
@@ -464,12 +462,10 @@ class App(FastAPI):
         # parse uploaded file into rdfilb graph
         graph = RdfGraph(graph_path)
 
-        sparql_server = self.sls_config.mainconfig["sparql_server"]
-        virtuoso_url = sparql_server.get(
-            "virtuoso_url", sparql_server["url"].removesuffix("/sparql")
-        )
-        virtuoso_user = sparql_server["user"]
-        virtuoso_password = sparql_server["password"]
+        sparql_url = self.config.get("virtuoso", "sparql_url")
+        virtuoso_url = sparql_url.removesuffix("/sparql")
+        virtuoso_user = self.config.get("virtuoso", "user")
+        virtuoso_password = self.config.get("virtuoso", "password")
 
         # divide graph into subgraph of batch_size triples and upload them
         batch_size = self.config.getint("rdf", "batch_size")
