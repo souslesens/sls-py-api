@@ -1,3 +1,8 @@
+## Version 2.0.1 (2025-07-18)
+### 👷 Bug fixes
+
+- remove remaining sls config call
+
 ## Version 2.0.0 (2025-07-17)
 ### 🎉 New features
 
