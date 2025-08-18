@@ -1,4 +1,4 @@
-FROM askomics/virtuoso:7.2.9 AS virtuoso
+FROM askomics/virtuoso:7.2.15 AS virtuoso
 FROM docker.io/library/python:3.11-alpine
 
 COPY --from=virtuoso /usr/local/virtuoso-opensource/lib /usr/local/virtuoso-opensource/lib
