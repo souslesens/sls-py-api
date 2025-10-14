@@ -18,6 +18,13 @@ tags_metadata = [
 
 
 app = App(openapi_tags=tags_metadata)
+api_path = app.config.get("main", "api_path") or "/api"
+if not api_path.startswith("/"):
+    raise ValueError("api_path must start with / (e.g /api)")
+if api_path.endswith("/"):
+    raise ValueError("api_path must not end with / (e.g /api)")
+
+api_v1_path = f"{api_path}/v1"
 
 
 async def verify_token(authorization: Annotated[str, Header()]):
@@ -39,7 +46,7 @@ async def verify_token(authorization: Annotated[str, Header()]):
     return user
 
 
-@app.get("/api/v1/health", tags=["misc"])
+@app.get(f"{api_v1_path}/health", tags=["misc"])
 def health():
     return {"health": "ok"}
 
@@ -50,7 +57,7 @@ tmp_graph_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/files", StaticFiles(directory=tmp_graph_dir))
 
 
-@app.post("/api/v1/rdf/convert", tags=["convert"])
+@app.post(f"{api_v1_path}/rdf/convert", tags=["convert"])
 def convert_rdf_format(
     _: Annotated[dict, Depends(verify_token)],
     data: UploadFile,
@@ -63,7 +70,7 @@ def convert_rdf_format(
     return {"data": result}
 
 
-@app.get("/api/v1/rdf/graph", tags=["rdf"])
+@app.get(f"{api_v1_path}/rdf/graph", tags=["rdf"])
 def get_rdf_graph(
     user: Annotated[dict, Depends(verify_token)],
     source: str,
@@ -120,7 +127,7 @@ def get_rdf_graph(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.delete("/api/v1/rdf/graph", tags=["rdf"])
+@app.delete(f"{api_v1_path}/rdf/graph", tags=["rdf"])
 def delete_rdf_graph(
     source: Annotated[str, Form()],
     user: Annotated[dict, Depends(verify_token)],
@@ -141,7 +148,7 @@ def delete_rdf_graph(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.post("/api/v1/rdf/graph", tags=["rdf"])
+@app.post(f"{api_v1_path}/rdf/graph", tags=["rdf"])
 def post_rdf_graph(
     last: Annotated[bool, Form()],
     clean: Annotated[bool, Form()],
