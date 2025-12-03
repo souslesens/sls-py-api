@@ -1,3 +1,17 @@
+## Version 2.1.0 (2025-12-03)
+### 🎉 New features
+
+- add isql method to delete graphs
+
+### 🗜️ Refactoring
+
+- `delete_graph` method
+- extract `get_isql_connection` method
+
+### 🔧 Build process or tool changes
+
+- migrate to uv
+
 ## Version 2.0.1 (2025-07-18)
 ### 👷 Bug fixes
 
