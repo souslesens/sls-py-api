@@ -187,7 +187,32 @@ class App(FastAPI):
         )
         return result
 
-    def delete_graph_from_endpoint(self, user: User, source_name: str):
+    def delete_graph(self, user: User, source_name: str, method: str = "api"):
+
+        if method == "api":
+            return self._delete_graph_with_api(user, source_name)
+        if method == "isql":
+            return self._delete_graph_with_isql(user, source_name)
+        else:
+            raise NotImplementedError(f"Method {method} is not implemented")
+
+    def _delete_graph_with_isql(self, user: User, source_name: str):
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
+
+        cursor = get_isql_connection(
+            self.config.get("virtuoso", "host"),
+            self.config.get("virtuoso", "isql_port"),
+            self.config.get("virtuoso", "user"),
+            self.config.get("virtuoso", "password"),
+            Path(self.config.get("virtuoso", "driver")),
+        )
+
+        query = f"SPARQL DROP SILENT GRAPH <{graph_uri}>"
+        cursor.execute(query)
+        cursor.execute("exec('checkpoint')")
+
+    def _delete_graph_with_api(self, user: User, source_name: str):
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
 
@@ -391,29 +416,32 @@ class App(FastAPI):
         graph_path: Path,
         source_name: str,
         remove_graph: bool = False,
-        method: str = "sparql",
+        upload_method: str = "sparql",
+        delete_method: str = "api",
     ):
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
         if remove_graph:
-            self.log.info(f"Removing graph {graph_uri}")
-            self.delete_graph_from_endpoint(user, source_name)
+            self.log.info(f"Removing graph {graph_uri} with method {delete_method}")
+            self.delete_graph(user, source_name, delete_method)
 
-        self.log.info(f"Uploading rdf graph with method {method}")
-        if method == "api":
+        self.log.info(f"Uploading rdf graph with method {upload_method}")
+        if upload_method == "api":
             self._upload_rdf_graph_with_virtuoso_api(user, graph_path, source_name)
-        elif method == "api_batched":
+        elif upload_method == "api_batched":
             self._upload_rdf_graph_with_virtuoso_api_batched(
                 user, graph_path, source_name
             )
-        elif method == "sparql_load":
+        elif upload_method == "sparql_load":
             tmp_graph_name = self._publish_graph(graph_path)
             base_url = self.config.get("main", "api_url_for_virtuoso")
             graph_url = f"{base_url}/files/{tmp_graph_name}"
             self._upload_rdf_graph_from_url(user, graph_url, source_name)
             self._clean_published_graph(tmp_graph_name)
         else:
-            raise NotImplementedError(f"Method {method} is not implemented")
+            raise NotImplementedError(
+                f"upload_method {upload_method} is not implemented"
+            )
 
     def _upload_rdf_graph_from_url(self, user: User, graph_url: str, source_name: str):
         sources = self.get_sources(user.token)

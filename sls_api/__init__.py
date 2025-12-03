@@ -132,7 +132,11 @@ def delete_rdf_graph(
                 status_code=401, detail=f"Not authorized to delete {source}"
             )
 
-        app.delete_graph_from_endpoint(user, source)
+        app.delete_graph(
+            user,
+            source,
+            method=app.config.get("main", "delete_rdf_graph_method") or "api",
+        )
         return {"message": f"{source} deleted"}
     except Exception as e:
         app.log.exception(e)
@@ -178,7 +182,9 @@ def post_rdf_graph(
                 tmpfile,
                 source,
                 remove_graph=replace,
-                method=app.config.get("main", "post_rdf_graph_method") or "api",
+                upload_method=app.config.get("main", "post_rdf_graph_method") or "api",
+                delete_method=app.config.get("main", "delete_rdf_graph_method")
+                or "api",
             )
 
             # remove tmpfile
