@@ -10,7 +10,6 @@ from time import sleep
 
 import requests
 import dateparser
-import pyodbc
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from rdflib import Graph, URIRef, Literal, XSD, BNode
@@ -21,7 +20,13 @@ from sls_api.config import SlsConfigParser
 from sls_api.graph import RdfGraph
 from sls_api.logging import log
 from sls_api.users import User
-from sls_api.utils import batched, sparql_query, get_uri_from_str, guess_triple_type
+from sls_api.utils import (
+    batched,
+    get_isql_connection,
+    get_uri_from_str,
+    guess_triple_type,
+    sparql_query,
+)
 
 
 class App(FastAPI):
@@ -244,19 +249,13 @@ class App(FastAPI):
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
 
-        virtuoso_driver_path = Path(self.config.get("virtuoso", "driver"))
-
-        virtuoso_host = self.config.get("virtuoso", "host")
-        virtuoso_port = self.config.get("virtuoso", "isql_port")
-        virtuoso_user = self.config.get("virtuoso", "user")
-        virtuoso_password = self.config.get("virtuoso", "password")
-
-        conn_str = f"DRIVER={virtuoso_driver_path};HOST={virtuoso_host}:{virtuoso_port};UID={virtuoso_user};PWD={virtuoso_password}"
-
-        connection = pyodbc.connect(conn_str)
-        connection.setencoding(encoding="utf-8")
-        connection.setdecoding(pyodbc.SQL_CHAR, encoding="utf-8")
-        cursor = connection.cursor()
+        cursor = get_isql_connection(
+            self.config.get("virtuoso", "host"),
+            self.config.get("virtuoso", "isql_port"),
+            self.config.get("virtuoso", "user"),
+            self.config.get("virtuoso", "password"),
+            Path(self.config.get("virtuoso", "driver")),
+        )
 
         query = (
             "SPARQL SELECT ?s ?p ?o ?is_uri ?is_blank ?datatype ?lang "

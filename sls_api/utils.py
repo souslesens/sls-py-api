@@ -2,6 +2,7 @@ from itertools import islice
 from re import match as re_match
 from typing import Iterator
 
+import pyodbc
 from rdflib import URIRef, Literal, BNode, XSD, Graph
 from SPARQLWrapper import DIGEST, JSON, SPARQLWrapper, XML
 
@@ -74,3 +75,15 @@ def get_uri_from_str(value: str, g: Graph) -> URIRef | BNode:
     if value.startswith("http"):
         return URIRef(value)
     return g.namespace_manager.expand_curie(value)
+
+
+def get_isql_connection(
+    virtuoso_host, virtuoso_port, virtuoso_user, virtuoso_password, virtuoso_driver_path
+):
+
+    conn_str = f"DRIVER={virtuoso_driver_path};HOST={virtuoso_host}:{virtuoso_port};UID={virtuoso_user};PWD={virtuoso_password}"
+
+    connection = pyodbc.connect(conn_str)
+    connection.setencoding(encoding="utf-8")
+    connection.setdecoding(pyodbc.SQL_CHAR, encoding="utf-8")
+    return connection.cursor()
