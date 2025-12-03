@@ -189,16 +189,18 @@ class App(FastAPI):
 
     def delete_graph(self, user: User, source_name: str, method: str = "api"):
 
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
+
+        self.log.info(f"Removing graph {graph_uri} with method {method}")
         if method == "api":
-            return self._delete_graph_with_api(user, source_name)
+            return self._delete_graph_with_api(graph_uri)
         if method == "isql":
-            return self._delete_graph_with_isql(user, source_name)
+            return self._delete_graph_with_isql(graph_uri)
         else:
             raise NotImplementedError(f"Method {method} is not implemented")
 
-    def _delete_graph_with_isql(self, user: User, source_name: str):
-        sources = self.get_sources(user.token)
-        graph_uri = sources[source_name]["graphUri"]
+    def _delete_graph_with_isql(self, graph_uri: str):
 
         cursor = get_isql_connection(
             self.config.get("virtuoso", "host"),
@@ -212,9 +214,7 @@ class App(FastAPI):
         cursor.execute(query)
         cursor.execute("exec('checkpoint')")
 
-    def _delete_graph_with_api(self, user: User, source_name: str):
-        sources = self.get_sources(user.token)
-        graph_uri = sources[source_name]["graphUri"]
+    def _delete_graph_with_api(self, graph_uri: str):
 
         sparql_url = self.config.get("virtuoso", "sparql_url")
         virtuoso_url = sparql_url.removesuffix("/sparql")
@@ -419,10 +419,7 @@ class App(FastAPI):
         upload_method: str = "sparql",
         delete_method: str = "api",
     ):
-        sources = self.get_sources(user.token)
-        graph_uri = sources[source_name]["graphUri"]
         if remove_graph:
-            self.log.info(f"Removing graph {graph_uri} with method {delete_method}")
             self.delete_graph(user, source_name, delete_method)
 
         self.log.info(f"Uploading rdf graph with method {upload_method}")
