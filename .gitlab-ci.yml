@@ -15,36 +15,29 @@ default:
 variables:
   POETRY_VIRTUALENVS_PATH: $CI_PROJECT_DIR/venv
 
-.base:
-  image: python:3.11-alpine
-  before_script:
-    - apk add --update --no-cache gcc musl-dev
-    - pip install -U poetry
-    - poetry install --only=dev
-  cache:
-    paths:
-      - venv
-
 .base-all:
-  image: python:3.11-alpine
+  image: astral/uv:python3.11-trixie-slim
   before_script:
-    - apk add --update --no-cache gcc g++ python3-dev unixodbc-dev
-    - pip install -U poetry
-    - poetry install --with=dev
+    - apt-get update
+    - apt-get install -y gcc g++ python3-dev unixodbc-dev
   cache:
     paths:
       - venv
 
 black:
-  extends: .base
   stage: lint
+  image: astral/uv:python3.11-trixie-slim
   script:
-    - poetry run black sls_api tests
+    - uvx black sls_api tests
 
 py3:
-  extends: .base-all
   stage: tests
-  script:
+  image: astral/uv:python3.11-trixie-slim
+  before_script:
+    - apt-get update
+    - apt-get install -y gcc g++ python3-dev unixodbc-dev
+    - uv sync --locked
     - cp config.ini.default config.ini
-    - poetry run pytest -v tests
+  script:
+    - uv run pytest -v tests
   artifacts: null

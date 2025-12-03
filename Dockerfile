@@ -1,17 +1,14 @@
-FROM askomics/virtuoso:7.2.9 AS virtuoso
 FROM docker.io/library/python:3.11-alpine
 
-COPY --from=virtuoso /usr/local/virtuoso-opensource/lib /usr/local/virtuoso-opensource/lib
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=askomics/virtuoso:7.2.9 /usr/local/virtuoso-opensource/lib /usr/local/virtuoso-opensource/lib
 
-RUN apk add --no-cache poetry gcc g++ python3-dev unixodbc-dev
+RUN apk add --no-cache gcc g++ python3-dev unixodbc-dev
 
 WORKDIR /src
-COPY poetry.lock pyproject.toml README.md /src/
-RUN poetry install --no-root
 
-COPY sls_api /src/sls_api
-RUN poetry install
-
+COPY . /src/
+RUN uv sync --locked
 COPY config.ini.default /src/config.ini
 
 EXPOSE 8000
