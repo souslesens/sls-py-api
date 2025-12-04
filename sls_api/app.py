@@ -2,11 +2,13 @@ import random
 import shutil
 import tempfile
 import json
+import mimetypes
 from datetime import datetime
 from pathlib import Path
 from re import compile as re_compile
 from string import ascii_lowercase
 from time import sleep
+from tempfile import gettempdir
 
 import requests
 import dateparser
@@ -430,11 +432,33 @@ class App(FastAPI):
                 user, graph_path, source_name
             )
         elif upload_method == "sparql_load":
-            tmp_graph_name = self._publish_graph(graph_path)
-            base_url = self.config.get("main", "api_url_for_virtuoso")
-            graph_url = f"{base_url}/files/{tmp_graph_name}"
-            self._upload_rdf_graph_from_url(user, graph_url, source_name)
-            self._clean_published_graph(tmp_graph_name)
+            # check mime type
+            # XXX: change to guess_file_type with python3.13
+            mimetype = mimetypes.guess_type(graph_path)[0]
+            # n-triples can be line splited
+            if mimetype == "application/n-triples":
+                self.log.info("n-triples file detected, batch upload")
+                lines = graph_path.read_text().split("\n")
+                batches = batched(lines, 1_000_000)
+                tmpdir = Path(gettempdir())
+                base_url = self.config.get("main", "api_url_for_virtuoso")
+                for i, batch in enumerate(batches):
+                    self.log.info(f"Load subgraph {i}")
+                    tmpfile = tmpdir.joinpath(f"{i}_{graph_path.name}")
+                    batch_lines = "\n".join(batch)
+                    tmpfile.write_text(batch_lines)
+                    tmp_graph_name = self._publish_graph(tmpfile)
+                    graph_url = f"{base_url}/files/{tmp_graph_name}"
+                    self._upload_rdf_graph_from_url(user, graph_url, source_name)
+                    self._clean_published_graph(tmp_graph_name)
+                    sleep(3)  # little rest for virtuoso
+            # other RDF serialization have to be uploaded at once
+            else:
+                tmp_graph_name = self._publish_graph(graph_path)
+                base_url = self.config.get("main", "api_url_for_virtuoso")
+                graph_url = f"{base_url}/files/{tmp_graph_name}"
+                self._upload_rdf_graph_from_url(user, graph_url, source_name)
+                self._clean_published_graph(tmp_graph_name)
         else:
             raise NotImplementedError(
                 f"upload_method {upload_method} is not implemented"
