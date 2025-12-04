@@ -508,7 +508,9 @@ class App(FastAPI):
         graph_uri = sources[source_name]["graphUri"]
 
         # parse uploaded file into rdfilb graph
+        self.log.info(f"Parse graph {graph_uri}")
         graph = RdfGraph(graph_path)
+        self.log.info(f"Graph {graph_uri} parsed!")
 
         sparql_url = self.config.get("virtuoso", "sparql_url")
         virtuoso_url = sparql_url.removesuffix("/sparql")

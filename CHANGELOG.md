@@ -1,3 +1,8 @@
+## Version 2.2.0 (2025-12-04)
+### 🎉 New features
+
+- split n-triples RDF file and batch-upload them
+
 ## Version 2.1.0 (2025-12-04)
 
 ## Version 2.1.0 (2025-12-03)
