@@ -1,3 +1,8 @@
+## Version 2.3.0 (2025-12-11)
+### 👷 Bug fixes
+
+- delete method can't take a body, but a url params
+
 ## Version 2.2.0 (2025-12-04)
 ### 🎉 New features
 
