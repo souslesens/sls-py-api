@@ -122,7 +122,7 @@ def get_rdf_graph(
 
 @app.delete("/api/v1/rdf/graph", tags=["rdf"])
 def delete_rdf_graph(
-    source: Annotated[str, Form()],
+    source: str,
     user: Annotated[dict, Depends(verify_token)],
 ):
     try:
