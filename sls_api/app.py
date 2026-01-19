@@ -351,6 +351,31 @@ class App(FastAPI):
                     graph.add((s, p, o))
         return graph
 
+    def get_subgraph_from_endpoint(
+        self,
+        user: User,
+        source_name: str,
+        limit: int,
+        offset: int,
+    ):
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
+
+        sparql_url = self.config.get("virtuoso", "sparql_url")
+        virtuoso_user = self.config.get("virtuoso", "user")
+        virtuoso_password = self.config.get("virtuoso", "password")
+
+        # get a subgraph
+        query = f"""CONSTRUCT {{ ?s ?p ?o . }}
+        FROM <{graph_uri}>
+        WHERE {{
+            ?s ?p ?o .
+        }}
+        LIMIT {limit}
+        OFFSET {offset}"""
+
+        return sparql_query(sparql_url, virtuoso_user, virtuoso_password, query, "xml")
+
     def _get_rdf_graph_from_endpoint(
         self,
         user: User,

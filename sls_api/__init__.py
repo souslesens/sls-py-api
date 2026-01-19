@@ -63,6 +63,49 @@ def convert_rdf_format(
     return {"data": result}
 
 
+@app.get("/api/v2/rdf/graph", tags=["rdf"])
+def get_rdf_graph_2(
+    user: Annotated[dict, Depends(verify_token)],
+    source: str,
+    offset: int = 0,
+    skipNamedIndividuals: bool = False,
+):
+    try:
+        limit = app.config.getint("rdf", "batch_size")
+        user = app.add_sources_for_user(user)
+        if not user.can_read(source):
+            raise HTTPException(
+                status_code=401, detail=f"Not authorized to read {source}"
+            )
+
+        graph_size = app._get_graph_size(user, source)
+        graph = app.get_subgraph_from_endpoint(user, source, limit, offset)
+        if skipNamedIndividuals:
+            graph = app.remove_named_individuals_from_graph(graph)
+
+        # get percent and number of triples for logging
+        percent = min(int(((offset + limit) * 100 / graph_size)), 100)
+        ntriples = limit if offset + limit < graph_size else graph_size - offset
+        app.log.info(f"Downloading {source} ({ntriples} triples) ({percent}%)")
+
+        if offset + limit >= graph_size:
+            next_offset = None
+        else:
+            next_offset = offset + limit
+
+        return {
+            "graph_size": graph_size,
+            "next_offset": next_offset,
+            "data": graph.serialize(format=format, encoding="utf-8").decode(),
+        }
+
+    except Exception as e:
+        app.log.exception(e)
+        if isinstance(e, HTTPException):
+            raise
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 @app.get("/api/v1/rdf/graph", tags=["rdf"])
 def get_rdf_graph(
     user: Annotated[dict, Depends(verify_token)],
