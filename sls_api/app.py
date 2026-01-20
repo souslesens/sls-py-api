@@ -9,6 +9,7 @@ from re import compile as re_compile
 from string import ascii_lowercase
 from time import sleep
 from tempfile import gettempdir
+from typing import List
 
 import requests
 import dateparser
@@ -167,7 +168,7 @@ class App(FastAPI):
 
         return "readwrite"
 
-    def _get_graph_size(self, user: User, source_name: str):
+    def _get_graph_size(self, user: User, source_name: str, add_imports: bool = False):
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
 
@@ -176,8 +177,15 @@ class App(FastAPI):
         virtuoso_user = self.config.get("virtuoso", "user")
         virtuoso_password = self.config.get("virtuoso", "password")
 
+        from_str = ""
+        if add_imports:
+            from_str = self._get_imports_string(
+                user, source_name, sources[source_name]["imports"]
+            )
+
         query = f"""SELECT count(*) as ?total
         FROM <{graph_uri}>
+        {from_str}
         WHERE {{
             ?s ?p ?o
         }}"""
@@ -351,15 +359,30 @@ class App(FastAPI):
                     graph.add((s, p, o))
         return graph
 
+    def _get_imports_string(
+        self, user: User, source_name: str, imports: List[str]
+    ) -> str:
+        sources = self.get_sources(user.token)
+        imports = sources[source_name]["imports"]
+        import_graphs = [f"FROM <{sources[imp]['graphUri']}>" for imp in imports]
+        return "\n".join(import_graphs)
+
     def get_subgraph_from_endpoint(
         self,
         user: User,
         source_name: str,
         limit: int,
         offset: int,
+        add_imports: bool = False,
     ):
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
+
+        from_str = ""
+        if add_imports:
+            from_str = self._get_imports_string(
+                user, source_name, sources[source_name]["imports"]
+            )
 
         sparql_url = self.config.get("virtuoso", "sparql_url")
         virtuoso_user = self.config.get("virtuoso", "user")
@@ -368,6 +391,7 @@ class App(FastAPI):
         # get a subgraph
         query = f"""CONSTRUCT {{ ?s ?p ?o . }}
         FROM <{graph_uri}>
+        {from_str}
         WHERE {{
             ?s ?p ?o .
         }}

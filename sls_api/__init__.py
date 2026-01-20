@@ -69,6 +69,8 @@ def get_rdf_graph_2(
     source: str,
     offset: int = 0,
     skipNamedIndividuals: bool = False,
+    withImports: bool = False,
+    format: Literal[RdfFormat] = "nt",
 ):
     try:
         limit = app.config.getint("rdf", "batch_size")
@@ -78,8 +80,8 @@ def get_rdf_graph_2(
                 status_code=401, detail=f"Not authorized to read {source}"
             )
 
-        graph_size = app._get_graph_size(user, source)
-        graph = app.get_subgraph_from_endpoint(user, source, limit, offset)
+        graph_size = app._get_graph_size(user, source, withImports)
+        graph = app.get_subgraph_from_endpoint(user, source, limit, offset, withImports)
         if skipNamedIndividuals:
             graph = app.remove_named_individuals_from_graph(graph)
 
