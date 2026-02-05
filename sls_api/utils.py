@@ -80,7 +80,6 @@ def get_uri_from_str(value: str, g: Graph) -> URIRef | BNode:
 def get_isql_connection(
     virtuoso_host, virtuoso_port, virtuoso_user, virtuoso_password, virtuoso_driver_path
 ):
-
     conn_str = f"DRIVER={virtuoso_driver_path};HOST={virtuoso_host}:{virtuoso_port};UID={virtuoso_user};PWD={virtuoso_password}"
 
     connection = pyodbc.connect(conn_str)

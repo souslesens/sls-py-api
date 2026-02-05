@@ -16,12 +16,13 @@ import dateparser
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from rdflib import Graph, URIRef, Literal, XSD, BNode
-from rdflib.namespace import OWL
+from rdflib.namespace import OWL, DC
 from requests.auth import HTTPDigestAuth
 
 from sls_api.config import SlsConfigParser
 from sls_api.graph import RdfGraph
 from sls_api.logging import log
+from sls_api.typing import Triple
 from sls_api.users import User
 from sls_api.utils import (
     batched,
@@ -198,7 +199,6 @@ class App(FastAPI):
         return result
 
     def delete_graph(self, user: User, source_name: str, method: str = "api"):
-
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
 
@@ -211,7 +211,6 @@ class App(FastAPI):
             raise NotImplementedError(f"Method {method} is not implemented")
 
     def _delete_graph_with_isql(self, graph_uri: str):
-
         cursor = get_isql_connection(
             self.config.get("virtuoso", "host"),
             self.config.get("virtuoso", "isql_port"),
@@ -225,7 +224,6 @@ class App(FastAPI):
         cursor.execute("exec('checkpoint')")
 
     def _delete_graph_with_api(self, graph_uri: str):
-
         sparql_url = self.config.get("virtuoso", "sparql_url")
         virtuoso_url = sparql_url.removesuffix("/sparql")
 
@@ -358,6 +356,14 @@ class App(FastAPI):
                         o = Literal(obj.pop("value"), **obj)
                     graph.add((s, p, o))
         return graph
+
+    def get_source_uri(self, user: User, import_name: str) -> str:
+        sources = self.get_sources(user.token)
+        return sources[import_name]["graphUri"]
+
+    def get_imports(self, user: User, source_name: str) -> list[str]:
+        sources = self.get_sources(user.token)
+        return sources[source_name].get("imports", [])
 
     def _get_imports_string(
         self, user: User, source_name: str, imports: List[str]
@@ -623,3 +629,45 @@ class App(FastAPI):
 
         result = graph.serialize(format=output_format, encoding="utf-8").decode()
         return result
+
+    def ask(self, user: User, source_name: str, triple: Triple) -> bool:
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
+
+        sparql_url = self.config.get("virtuoso", "sparql_url")
+        virtuoso_user = self.config.get("virtuoso", "user")
+        virtuoso_password = self.config.get("virtuoso", "password")
+
+        s, p, o = triple
+
+        query = f"ASK FROM <{graph_uri}> {{ {s.n3()} {p.n3()} {o.n3()} . }}"
+        result = sparql_query(sparql_url, virtuoso_user, virtuoso_password, query)
+        return result["boolean"]
+
+    def gen_contributor_triple(
+        self, user: User, source_name: str, contributor: str
+    ) -> Triple:
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
+
+        s = URIRef(graph_uri)
+        p = DC.contributor
+        o = Literal(contributor, datatype=XSD.string)
+
+        return (s, p, o)
+
+    def gen_import_triples(
+        self, user: User, source_name: str, import_uris: list[str]
+    ) -> list[Triple]:
+        sources = self.get_sources(user.token)
+        graph_uri = sources[source_name]["graphUri"]
+        results = []
+        for uri in import_uris:
+            s = URIRef(graph_uri)
+            p = OWL.imports
+            o = URIRef(uri)
+            results.append(
+                (s, p, o),
+            )
+
+        return results

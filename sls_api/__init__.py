@@ -90,6 +90,19 @@ def get_rdf_graph_2(
         ntriples = limit if offset + limit < graph_size else graph_size - offset
         app.log.info(f"Downloading {source} ({ntriples} triples) ({percent}%)")
 
+        # add contributor and import triples on first offset
+        if offset == 0:
+            contributor_rdf = app.gen_contributor_triple(user, source, user.login)
+            if not app.ask(user, source, contributor_rdf):
+                graph.add(contributor_rdf)
+            if withImports:
+                imports = app.get_imports(user, source)
+                import_uris = [app.get_source_uri(user, i) for i in imports]
+                import_triples = app.gen_import_triples(user, source, import_uris)
+                for triple in import_triples:
+                    if not app.ask(user, source, triple):
+                        graph.add(triple)
+
         if offset + limit >= graph_size:
             next_offset = None
         else:
