@@ -73,7 +73,7 @@ def get_rdf_graph_2(
     format: Literal[RdfFormat] = "nt",
 ):
     try:
-        limit = app.config.getint("rdf", "batch_size")
+        limit = app.get_sls_config(user.token)["sparqlDownloadLimit"]
         user = app.add_sources_for_user(user)
         if not user.can_read(source):
             raise HTTPException(

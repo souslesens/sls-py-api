@@ -87,6 +87,15 @@ class App(FastAPI):
         user = response.json()
         return User(**user)
 
+    def get_sls_config(self, token: str) -> None:
+        api_base_url = self.config.get("main", "souslesens_api_url")
+        url = f"{api_base_url}/config"
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = requests.get(url, headers=headers)
+        config = response.json()
+        return config
+
     def get_profiles(self, token: str) -> dict:
         api_base_url = self.config.get("main", "souslesens_api_url")
         url = f"{api_base_url}/profiles"
