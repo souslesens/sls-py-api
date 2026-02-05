@@ -73,6 +73,9 @@ def get_rdf_graph_2(
     format: Literal[RdfFormat] = "nt",
 ):
     try:
+        if offset == 0:
+            app.cache_clear()
+
         limit = app.get_sls_config(user.token)["sparqlDownloadLimit"]
         user = app.add_sources_for_user(user)
         if not user.can_read(source):
@@ -131,6 +134,7 @@ def get_rdf_graph(
     skipNamedIndividuals: bool = False,
 ):
     try:
+        app.cache_clear()
         limit = app.config.getint("main", "chunk_size") or 1_000_000  # 1MB
         user = app.add_sources_for_user(user)
         if not user.can_read(source):
@@ -184,6 +188,7 @@ def delete_rdf_graph(
     user: Annotated[dict, Depends(verify_token)],
 ):
     try:
+        app.cache_clear()
         user = app.add_sources_for_user(user)
         if not user.can_readwrite(source):
             raise HTTPException(
@@ -214,6 +219,7 @@ def post_rdf_graph(
     identifier: Annotated[str, Form()] = "",
 ):
     try:
+        app.cache_clear()
         user = app.add_sources_for_user(user)
         if not user.can_readwrite(source):
             raise HTTPException(

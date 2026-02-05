@@ -4,11 +4,12 @@ import tempfile
 import json
 import mimetypes
 from datetime import datetime
+from functools import cache
 from pathlib import Path
 from re import compile as re_compile
 from string import ascii_lowercase
-from time import sleep
 from tempfile import gettempdir
+from time import sleep
 from typing import List
 
 import requests
@@ -87,6 +88,7 @@ class App(FastAPI):
         user = response.json()
         return User(**user)
 
+    @cache
     def get_sls_config(self, token: str) -> None:
         api_base_url = self.config.get("main", "souslesens_api_url")
         url = f"{api_base_url}/config"
@@ -96,6 +98,7 @@ class App(FastAPI):
         config = response.json()
         return config
 
+    @cache
     def get_profiles(self, token: str) -> dict:
         api_base_url = self.config.get("main", "souslesens_api_url")
         url = f"{api_base_url}/profiles"
@@ -105,6 +108,7 @@ class App(FastAPI):
         profiles = response.json()["resources"]
         return profiles
 
+    @cache
     def get_sources(self, token: str) -> dict:
         api_base_url = self.config.get("main", "souslesens_api_url")
         url = f"{api_base_url}/sources"
@@ -113,6 +117,11 @@ class App(FastAPI):
         response = requests.get(url, headers=headers)
         sources = response.json()["resources"]
         return sources
+
+    def cache_clear(self):
+        self.get_sls_config.cache_clear()
+        self.get_profiles.cache_clear()
+        self.get_sources.cache_clear()
 
     def add_sources_for_user(self, user: User) -> User:
         user.set_sources(self._get_user_sources(user))
