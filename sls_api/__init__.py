@@ -95,7 +95,8 @@ def get_rdf_graph_2(
 
         # add contributor and import triples on first offset
         if offset == 0:
-            contributor_rdf = app.gen_contributor_triple(user, source, user.login)
+            owner = app.get_source_owner(user, source)
+            contributor_rdf = app.gen_contributor_triple(user, source, owner)
             if not app.ask(user, source, contributor_rdf):
                 graph.add(contributor_rdf)
             if withImports:

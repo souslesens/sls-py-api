@@ -383,6 +383,10 @@ class App(FastAPI):
         sources = self.get_sources(user.token)
         return sources[source_name].get("imports", [])
 
+    def get_source_owner(self, user: User, source_name: str) -> str:
+        sources = self.get_sources(user.token)
+        return sources[source_name].get("owner", "")
+
     def _get_imports_string(
         self, user: User, source_name: str, imports: List[str]
     ) -> str:
