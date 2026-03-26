@@ -9,6 +9,7 @@ from ulid import ULID
 
 from sls_api.typing import ResponseConvert, RdfFormat, SlsRdfFormat
 from sls_api.app import App
+import mimetypes
 
 tags_metadata = [
     {"name": "misc", "description": ""},
@@ -215,7 +216,6 @@ def post_rdf_graph(
     clean: Annotated[bool, Form()],
     data: UploadFile,
     source: Annotated[str, Form()],
-    replace: Annotated[bool, Form()],
     user: Annotated[dict, Depends(verify_token)],
     identifier: Annotated[str, Form()] = "",
 ):
@@ -239,14 +239,20 @@ def post_rdf_graph(
 
         with tmpfile.open("ab") as fp:
             fp.write(data.file.read())
+            # detect MIME type of uploaded file
+            mimetype = mimetypes.guess_type(tmpfile)[0]
+            app.log.info(
+                f"Uploaded file '{data.filename}' stored as '{tmpfile.name}' detected MIME type: {mimetype}"
+            )
 
+        # ntriples can be uploaded directly
         # last chunk, load data into triplestore
-        if last:
+        if mimetype == "application/n-triples" or last:
             app.upload_rdf_graph(
                 user,
                 tmpfile,
                 source,
-                remove_graph=replace,
+                remove_graph=False,
                 upload_method=app.config.get("main", "post_rdf_graph_method") or "api",
                 delete_method=app.config.get("main", "delete_rdf_graph_method")
                 or "api",
