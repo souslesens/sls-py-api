@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from rdflib import Graph, BNode, URIRef, Literal, XSD
 
-from sls_api.utils import batched, get_uri_from_str, guess_triple_type
+from sls_api.utils import batched, get_uri_from_str, guess_triple_type, has_blank_nodes
 
 
 class TestUtils(TestCase):
@@ -79,3 +79,36 @@ class TestUtils(TestCase):
         res = guess_triple_type("toto", Graph())
         self.assertEqual(str(res), "toto")
         self.assertEqual(res, Literal("toto"))
+
+    def test_has_blank_nodes_with_blank_nodes(self):
+        g = Graph()
+        bnode = BNode("test1")
+        g.add(
+            (bnode, URIRef("http://example.org/pred"), URIRef("http://example.org/obj"))
+        )
+        g.add(
+            (
+                URIRef("http://example.org/subj"),
+                URIRef("http://example.org/pred"),
+                bnode,
+            )
+        )
+        self.assertTrue(has_blank_nodes(g))
+
+    def test_has_blank_nodes_without_blank_nodes(self):
+        g = Graph()
+        g.add(
+            (
+                URIRef("http://example.org/subj"),
+                URIRef("http://example.org/pred"),
+                URIRef("http://example.org/obj"),
+            )
+        )
+        g.add(
+            (
+                URIRef("http://example.org/subj2"),
+                URIRef("http://example.org/pred2"),
+                Literal("test"),
+            )
+        )
+        self.assertFalse(has_blank_nodes(g))

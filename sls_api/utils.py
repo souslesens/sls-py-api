@@ -77,6 +77,14 @@ def get_uri_from_str(value: str, g: Graph) -> URIRef | BNode:
     return g.namespace_manager.expand_curie(value)
 
 
+def has_blank_nodes(graph: Graph) -> bool:
+    for triple in graph:
+        subject, predicate, obj = triple
+        if isinstance(subject, BNode) or isinstance(obj, BNode):
+            return True
+    return False
+
+
 def get_isql_connection(
     virtuoso_host, virtuoso_port, virtuoso_user, virtuoso_password, virtuoso_driver_path
 ):

@@ -30,6 +30,7 @@ from sls_api.utils import (
     get_isql_connection,
     get_uri_from_str,
     guess_triple_type,
+    has_blank_nodes,
     sparql_query,
 )
 
@@ -497,15 +498,17 @@ class App(FastAPI):
         remove_graph: bool = False,
         upload_method: str = "sparql",
         delete_method: str = "api",
-    ):
+    ) -> bool:
         if remove_graph:
             self.delete_graph(user, source_name, delete_method)
 
         self.log.info(f"Uploading rdf graph with method {upload_method}")
         if upload_method == "api":
-            self._upload_rdf_graph_with_virtuoso_api(user, graph_path, source_name)
+            return self._upload_rdf_graph_with_virtuoso_api(
+                user, graph_path, source_name
+            )
         elif upload_method == "api_batched":
-            self._upload_rdf_graph_with_virtuoso_api_batched(
+            return self._upload_rdf_graph_with_virtuoso_api_batched(
                 user, graph_path, source_name
             )
         elif upload_method == "sparql_load":
@@ -514,6 +517,7 @@ class App(FastAPI):
             graph_url = f"{base_url}/files/{tmp_graph_name}"
             self._upload_rdf_graph_from_url(user, graph_url, source_name)
             self._clean_published_graph(tmp_graph_name)
+            return self._check_blank_nodes(graph_path)
         else:
             raise NotImplementedError(
                 f"upload_method {upload_method} is not implemented"
@@ -533,7 +537,7 @@ class App(FastAPI):
 
     def _upload_rdf_graph_with_virtuoso_api(
         self, user: User, graph_path: Path, source_name: str
-    ):
+    ) -> bool:
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
 
@@ -541,6 +545,8 @@ class App(FastAPI):
         virtuoso_url = sparql_url.removesuffix("/sparql")
         virtuoso_user = self.config.get("virtuoso", "user")
         virtuoso_password = self.config.get("virtuoso", "password")
+
+        has_blank_nodes_flag = self._check_blank_nodes(graph_path)
 
         response = requests.post(
             f"{virtuoso_url}/sparql-graph-crud-auth",
@@ -555,10 +561,11 @@ class App(FastAPI):
                     f"Got {response.status_code} while posting graph {graph_uri}.\n{response.content}"
                 )
             )
+        return has_blank_nodes_flag
 
     def _upload_rdf_graph_with_virtuoso_api_batched(
         self, user: User, graph_path: Path, source_name: str
-    ):
+    ) -> bool:
         sources = self.get_sources(user.token)
         graph_uri = sources[source_name]["graphUri"]
 
@@ -566,6 +573,8 @@ class App(FastAPI):
         self.log.info(f"Parse graph {graph_uri}")
         graph = RdfGraph(graph_path)
         self.log.info(f"Graph {graph_uri} parsed!")
+
+        has_blank_nodes_flag = has_blank_nodes(graph)
 
         sparql_url = self.config.get("virtuoso", "sparql_url")
         virtuoso_url = sparql_url.removesuffix("/sparql")
@@ -602,6 +611,11 @@ class App(FastAPI):
                     f"\nGot {response.status_code} while posting graph "
                     f"{graph_uri}:\n  {response.content}"
                 )
+        return has_blank_nodes_flag
+
+    def _check_blank_nodes(self, graph_path: Path) -> bool:
+        graph = RdfGraph(graph_path)
+        return has_blank_nodes(graph)
 
     def _feed_graph_with_sls_data(self, data: list, graph: RdfGraph) -> None:
         for elem in data:
