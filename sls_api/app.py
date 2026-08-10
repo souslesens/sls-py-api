@@ -518,13 +518,15 @@ class App(FastAPI):
         remove_graph: bool = False,
         upload_method: str = "sparql",
         delete_method: str = "api",
-    ) -> bool:
+    ) -> tuple[bool, bool]:
         if remove_graph:
             self.delete_graph(user, source_name, delete_method)
 
         had_blank_nodes = False
+        blank_nodes_converted = False
         if self.config.getboolean("rdf", "convert_blank_nodes_to_uris", fallback=True):
             had_blank_nodes = self.convert_blank_nodes_to_uris(graph_path)
+            blank_nodes_converted = had_blank_nodes
 
         self.log.info(f"Uploading rdf graph with method {upload_method}")
         if upload_method == "api":
@@ -544,7 +546,7 @@ class App(FastAPI):
                 f"upload_method {upload_method} is not implemented"
             )
 
-        return had_blank_nodes
+        return had_blank_nodes, blank_nodes_converted
 
     def _upload_rdf_graph_from_url(self, user: User, graph_url: str, source_name: str):
         sources = self.get_sources(user.token)

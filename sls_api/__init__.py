@@ -248,7 +248,7 @@ def post_rdf_graph(
         # ntriples can be uploaded directly
         # last chunk, load data into triplestore
         if mimetype == "application/n-triples" or last:
-            has_blank_nodes = app.upload_rdf_graph(
+            had_blank_nodes, blank_nodes_converted = app.upload_rdf_graph(
                 user,
                 tmpfile,
                 source,
@@ -261,7 +261,11 @@ def post_rdf_graph(
             # remove tmpfile
             tmpfile.unlink()
 
-            return {"identifier": identifier, "has_blank_nodes": has_blank_nodes}
+            return {
+                "identifier": identifier,
+                "has_blank_nodes": had_blank_nodes,
+                "blank_nodes_converted": blank_nodes_converted,
+            }
 
         return {"identifier": identifier}
     except Exception as e:
