@@ -85,6 +85,17 @@ def has_blank_nodes(graph: Graph) -> bool:
     return False
 
 
+def replace_blank_nodes_with_uris(graph: Graph) -> Graph:
+    bnode_map = {}
+    new_graph = Graph()
+    for s, p, o in graph:
+        for node in (s, o):
+            if isinstance(node, BNode) and node not in bnode_map:
+                bnode_map[node] = URIRef("_:" + str(node))
+        new_graph.add((bnode_map.get(s, s), p, bnode_map.get(o, o)))
+    return new_graph
+
+
 def get_isql_connection(
     virtuoso_host, virtuoso_port, virtuoso_user, virtuoso_password, virtuoso_driver_path
 ):

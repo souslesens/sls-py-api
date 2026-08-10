@@ -23,3 +23,4 @@ allowed_credentials = yes
 
 [rdf]
 batch_size = 10000
+convert_blank_nodes_to_uris = true

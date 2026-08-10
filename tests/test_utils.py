@@ -2,7 +2,13 @@ from unittest import TestCase
 
 from rdflib import Graph, BNode, URIRef, Literal, XSD
 
-from sls_api.utils import batched, get_uri_from_str, guess_triple_type, has_blank_nodes
+from sls_api.utils import (
+    batched,
+    get_uri_from_str,
+    guess_triple_type,
+    has_blank_nodes,
+    replace_blank_nodes_with_uris,
+)
 
 
 class TestUtils(TestCase):
@@ -112,3 +118,75 @@ class TestUtils(TestCase):
             )
         )
         self.assertFalse(has_blank_nodes(g))
+
+
+class TestReplaceBlankNodesWithUris(TestCase):
+    def test_bnode_in_subject_converted_to_uri(self):
+        g = Graph()
+        bnode = BNode("b1")
+        g.add(
+            (bnode, URIRef("http://example.org/pred"), URIRef("http://example.org/obj"))
+        )
+        result = replace_blank_nodes_with_uris(g)
+        for s, p, o in result:
+            self.assertIsInstance(s, URIRef)
+            self.assertEqual(str(s), "_:b1")
+            self.assertNotIsInstance(s, BNode)
+
+    def test_bnode_in_object_converted_to_uri(self):
+        g = Graph()
+        bnode = BNode("b2")
+        g.add(
+            (
+                URIRef("http://example.org/subj"),
+                URIRef("http://example.org/pred"),
+                bnode,
+            )
+        )
+        result = replace_blank_nodes_with_uris(g)
+        for s, p, o in result:
+            self.assertIsInstance(o, URIRef)
+            self.assertEqual(str(o), "_:b2")
+            self.assertNotIsInstance(o, BNode)
+
+    def test_connected_bnodes_preserve_references(self):
+        g = Graph()
+        b1 = BNode("b1")
+        b2 = BNode("b2")
+        g.add((b1, URIRef("http://example.org/knows"), b2))
+        result = replace_blank_nodes_with_uris(g)
+        for s, p, o in result:
+            self.assertEqual(str(s), "_:b1")
+            self.assertEqual(str(o), "_:b2")
+
+    def test_same_bnode_references_map_to_same_uri(self):
+        g = Graph()
+        b1 = BNode("b1")
+        g.add((b1, URIRef("http://example.org/name"), Literal("Alice")))
+        g.add((b1, URIRef("http://example.org/age"), Literal("30")))
+        result = replace_blank_nodes_with_uris(g)
+        subjects = [s for s, p, o in result]
+        self.assertEqual(len(subjects), 2)
+        self.assertEqual(str(subjects[0]), "_:b1")
+        self.assertEqual(str(subjects[1]), "_:b1")
+        self.assertEqual(subjects[0], subjects[1])
+
+    def test_graph_without_bnodes_unchanged(self):
+        g = Graph()
+        g.add(
+            (
+                URIRef("http://example.org/s"),
+                URIRef("http://example.org/p"),
+                URIRef("http://example.org/o"),
+            )
+        )
+        result = replace_blank_nodes_with_uris(g)
+        self.assertEqual(len(result), 1)
+        for s, p, o in result:
+            self.assertEqual(s, URIRef("http://example.org/s"))
+            self.assertEqual(o, URIRef("http://example.org/o"))
+
+    def test_empty_graph_returns_empty_graph(self):
+        g = Graph()
+        result = replace_blank_nodes_with_uris(g)
+        self.assertEqual(len(result), 0)
