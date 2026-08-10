@@ -1,6 +1,6 @@
 [project]
 name = "sls-api"
-version = "2.6.0"
+version = "2.7.0"
 description = "FastAPI for the SousLeSens project"
 authors = [{ name = "Logilab" }]
 requires-python = ">=3.11,<4"
