@@ -26,7 +26,6 @@ from sls_api.logging import log
 from sls_api.typing import Triple
 from sls_api.users import User
 from sls_api.utils import (
-    batched,
     get_isql_connection,
     get_uri_from_str,
     guess_triple_type,
@@ -282,8 +281,6 @@ class App(FastAPI):
         self.log.info(f"Getting rdf graph with {method}")
         if method == "api":
             graph = self._get_rdf_graph_from_virtuoso_api(user, source_name)
-        elif method == "sparql":
-            graph = self._get_rdf_graph_from_endpoint(user, source_name)
         elif method == "isql":
             graph = self._get_rdf_graph_from_isql(user, source_name)
         else:
@@ -430,50 +427,6 @@ class App(FastAPI):
 
         return sparql_query(sparql_url, virtuoso_user, virtuoso_password, query, "xml")
 
-    def _get_rdf_graph_from_endpoint(
-        self,
-        user: User,
-        source_name: str,
-    ):
-        sources = self.get_sources(user.token)
-        graph_uri = sources[source_name]["graphUri"]
-
-        sparql_url = self.config.get("virtuoso", "sparql_url")
-        virtuoso_user = self.config.get("virtuoso", "user")
-        virtuoso_password = self.config.get("virtuoso", "password")
-
-        limit = self.config.getint("rdf", "batch_size")
-        graph_size = self._get_graph_size(user, source_name)
-        offset = 0
-
-        graph = Graph()
-
-        while offset < graph_size:
-            # get percent and number of triples for logging
-            percent = min(int(((offset + limit) * 100 / graph_size)), 100)
-            ntriples = limit if offset + limit < graph_size else graph_size - offset
-
-            self.log.info(f"Downloading {graph_uri} ({ntriples} triples) ({percent}%)")
-
-            # get a subgraph
-            query = f"""CONSTRUCT {{ ?s ?p ?o . }}
-            FROM <{graph_uri}>
-            WHERE {{
-                ?s ?p ?o .
-            }}
-            LIMIT {limit}
-            OFFSET {offset}"""
-
-            results = sparql_query(
-                sparql_url, virtuoso_user, virtuoso_password, query, "xml"
-            )
-
-            # concat subgraph to final graph
-            graph += results
-            offset += limit
-
-        return graph
-
     def _clean_published_graph(self, tmp_graph_name):
         tmp_dir = Path(tempfile.gettempdir())
         tmp_graph_dir = tmp_dir / Path("sls_api")
@@ -531,10 +484,6 @@ class App(FastAPI):
         self.log.info(f"Uploading rdf graph with method {upload_method}")
         if upload_method == "api":
             self._upload_rdf_graph_with_virtuoso_api(user, graph_path, source_name)
-        elif upload_method == "api_batched":
-            self._upload_rdf_graph_with_virtuoso_api_batched(
-                user, graph_path, source_name
-            )
         elif upload_method == "sparql_load":
             tmp_graph_name = self._publish_graph(graph_path)
             base_url = self.config.get("main", "api_url_for_virtuoso")
@@ -584,54 +533,6 @@ class App(FastAPI):
                     f"Got {response.status_code} while posting graph {graph_uri}.\n{response.content}"
                 )
             )
-        return
-
-    def _upload_rdf_graph_with_virtuoso_api_batched(
-        self, user: User, graph_path: Path, source_name: str
-    ) -> bool:
-        sources = self.get_sources(user.token)
-        graph_uri = sources[source_name]["graphUri"]
-
-        # parse uploaded file into rdfilb graph
-        self.log.info(f"Parse graph {graph_uri}")
-        graph = RdfGraph(graph_path)
-        self.log.info(f"Graph {graph_uri} parsed!")
-
-        sparql_url = self.config.get("virtuoso", "sparql_url")
-        virtuoso_url = sparql_url.removesuffix("/sparql")
-        virtuoso_user = self.config.get("virtuoso", "user")
-        virtuoso_password = self.config.get("virtuoso", "password")
-
-        # divide graph into subgraph of batch_size triples and upload them
-        batch_size = self.config.getint("rdf", "batch_size")
-        graph_size = len(graph)
-        for i, batch in enumerate(batched(graph, batch_size)):
-            subgraph = Graph()
-            for triples in batch:
-                subgraph.add(triples)
-
-            ntriples = subgraph.serialize(format="nt", encoding="utf-8")
-
-            response = requests.post(
-                f"{virtuoso_url}/sparql-graph-crud-auth",
-                auth=HTTPDigestAuth(virtuoso_user, virtuoso_password),
-                params={"graph-uri": graph_uri},
-                data=ntriples,
-                headers={"Content-type": "text/plain"},
-            )
-
-            # get percent for logs
-            percent = min(100, int((((i + 1) * batch_size) * 100) / graph_size))
-            status = "ok" if response.ok else "ERROR"
-            self.log.info(
-                f"uploading {graph_uri} ({len(subgraph)} triples) ({percent}%) {status}"
-            )
-
-            if not response.ok:
-                raise BaseException(
-                    f"\nGot {response.status_code} while posting graph "
-                    f"{graph_uri}:\n  {response.content}"
-                )
         return
 
     def _check_blank_nodes(self, graph_path: Path) -> bool:

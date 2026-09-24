@@ -1,31 +1,8 @@
-from itertools import islice
 from re import match as re_match
-from typing import Iterator
 
 import pyodbc
 from rdflib import URIRef, Literal, BNode, XSD, Graph
 from SPARQLWrapper import DIGEST, JSON, SPARQLWrapper, XML
-
-
-def batched(iterable: list, chunk_size: int) -> Iterator[list]:
-    """Split an iterable in multiple chunks of a specific size
-
-    Parameters
-    ----------
-    iterable : list
-        The iterable to split
-    chunk_size : int
-        The maximal size of each chunk
-
-    Yields
-    ------
-    iter(list)
-        A chunk of the iterable as a generator object
-    """
-
-    iterator = iter(iterable)
-    while chunk := tuple(islice(iterator, chunk_size)):
-        yield chunk
 
 
 def sparql_query(

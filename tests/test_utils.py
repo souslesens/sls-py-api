@@ -3,7 +3,6 @@ from unittest import TestCase
 from rdflib import Graph, BNode, URIRef, Literal, XSD
 
 from sls_api.utils import (
-    batched,
     get_uri_from_str,
     guess_triple_type,
     has_blank_nodes,
@@ -12,17 +11,6 @@ from sls_api.utils import (
 
 
 class TestUtils(TestCase):
-    def test_batched_with_empty_iterable(self):
-        chunks = batched([], 10)
-        self.assertCountEqual(list(chunks), [])
-
-    def test_batched_with_valid_iterable(self):
-        chunks = batched(range(0, 100), 10)
-
-        for index, chunk in enumerate(chunks):
-            self.assertEqual(len(chunk), 10)
-            self.assertEqual(chunk[0], 10 * index)
-
     def test_get_uri_from_string_blanknode(self):
         bnode = get_uri_from_str("_:toto", Graph())
         self.assertIsInstance(bnode, BNode)
