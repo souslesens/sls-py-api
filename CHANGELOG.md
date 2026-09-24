@@ -1,3 +1,70 @@
+## Version 2.8.0 (2026-09-24)
+### 🗜️ Refactoring
+
+- remove unused upload and download methods *BREAKING CHANGE*
+
+### 👷 Bug fixes
+
+- return 401 when token has no matching user
+
+### 🔧 Build process or tool changes
+
+- add pytest-cov and pin httpx for coverage
+- ignore venv and local dev artifacts
+
+### 🤖 Continuous integration
+
+- run pytest with coverage in gitlab
+
+### 🧪 Tests
+
+- add app logic and route tests
+- migrate unit tests to pytest style
+- move graph and sls data fixtures into tests/data
+
+### 📝 Documentation
+
+- add development workflow to AGENTS.md
+
+## Version 2.7.0 (2026-08-10)
+### 🎉 New features
+
+- convert blank nodes to URIs before virtuoso upload
+- return blank_nodes_converted flag in upload response *BREAKING CHANGE*
+
+## Version 2.6.0 (2026-05-22)
+### 🎉 New features
+
+- add blank nodes detection on graph upload
+
+## Version 2.5.1 (2026-04-03)
+### 🔧 Build process or tool changes
+
+- upgrade version number in uv.lock
+
+## Version 2.5.0 (2026-03-26)
+### 🎉 New features
+
+- upload chunk directly if mimetype is nt
+
+## Version 2.4.1 (2026-02-06)
+### 👷 Bug fixes
+
+- constributor is owner, not logged user
+
+## Version 2.4.0 (2026-02-05)
+### 🎉 New features
+
+- add new /api/v2/rdf/graph route to get rdf graph
+- add imports to download
+- add import and contributor triples on first offset
+- get sparqlDownloadLimit from sls config
+- add cache
+
+### 🔧 Build process or tool changes
+
+- remove poetry.lock
+
 ## Version 2.3.0 (2025-12-11)
 ### 👷 Bug fixes
 
