@@ -34,9 +34,9 @@ async def verify_token(authorization: Annotated[str, Header()]):
         )
     token = output.group("token")
     user = app.get_user_from_token(token)
-    user.token = token
     if not user:
         raise HTTPException(status_code=401, detail="You are not authorized")
+    user.token = token
     return user
 
 
