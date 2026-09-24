@@ -30,7 +30,7 @@ black:
   script:
     - uvx black sls_api tests
 
-py3:
+pytest:
   stage: tests
   image: astral/uv:python3.11-trixie-slim
   before_script:
@@ -39,5 +39,5 @@ py3:
     - uv sync --locked
     - cp config.ini.default config.ini
   script:
-    - uv run pytest -v tests
+    - uv run pytest --cov=sls_api --cov-report=term-missing tests
   artifacts: null
