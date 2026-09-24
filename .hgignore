@@ -10,9 +10,6 @@ config.ini
 *.orig
 .ipynb_checkpoints/
 toto.ipynb
-with_blank_nodes.nt
-without_blank_nodes.nt
 virtodbc_r.so
-data.json
 compose.yml
 dump_one_graph_nquads_procedure.sql

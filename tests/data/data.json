@@ -1,0 +1,50 @@
+{
+  "prefixes": {
+    "": "http://example.org/",
+    "toto": "http://example.org/toto#"
+  },
+  "data": [
+    {
+      "subject": ":xavier",
+      "predicate": "foaf:age",
+      "object": 18
+    },
+    {
+      "subject": ":xavier",
+      "predicate": "toto:valeur",
+      "object": 1.2
+    },
+    {
+      "subject": ":xavier",
+      "predicate": "owl:sameAs",
+      "object": "foaf:xavier"
+    },
+    { "subject": "foaf:xavier", "predicate": "rdfs:label", "object": "Xavier" },
+    {
+      "subject": "foaf:xavier",
+      "predicate": "toto:randomDateTime",
+      "object": "2021-01-01T11:12:13"
+    },
+    {
+      "subject": "foaf:xavier",
+      "predicate": "toto:randomDate",
+      "object": "2021-01-01"
+    },
+    {
+      "subject": "foaf:aurelien",
+      "predicate": "rdfs:label",
+      "object": "Aurélien"
+    },
+    {
+      "subject": "foaf:xavier",
+      "predicate": "foaf:know",
+      "object": "foaf:aurelien"
+    },
+    { "subject": "foaf:xavier", "predicate": ":aPourList", "object": "_:a" },
+    { "subject": "_:a", "predicate": "rdf:type", "object": "rdf:List" },
+    { "subject": "_:a", "predicate": "rdf:first", "object": "Bonjour" },
+    { "subject": "_:a", "predicate": "rdf:rest", "object": "_:b" },
+    { "subject": "_:b", "predicate": "rdf:first", "object": "Hello" },
+    { "subject": "_:b", "predicate": "rdf:rest", "object": "rdf:nil" }
+  ]
+}

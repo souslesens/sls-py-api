@@ -8,6 +8,7 @@ from sls_api.app import App
 from sls_api.users import User
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+TESTS_DATA_DIR = Path(__file__).resolve().parent / "data"
 
 DEFAULT_SOURCES = {
     "test_ro": {
@@ -103,14 +104,14 @@ def profiles() -> dict:
 
 @pytest.fixture
 def graph_with_blank_nodes() -> Path:
-    return PROJECT_ROOT / "with_blank_nodes.nt"
+    return TESTS_DATA_DIR / "with_blank_nodes.nt"
 
 
 @pytest.fixture
 def graph_without_blank_nodes() -> Path:
-    return PROJECT_ROOT / "without_blank_nodes.nt"
+    return TESTS_DATA_DIR / "without_blank_nodes.nt"
 
 
 @pytest.fixture
 def sls_data() -> Path:
-    return PROJECT_ROOT / "data.json"
+    return TESTS_DATA_DIR / "data.json"
