@@ -58,6 +58,20 @@ def test_user_can_read(default_values):
         assert user.can_read(source) is True
 
 
+def test_user_cannot_read_forbidden_source(default_values):
+    user = User(**default_values)
+    user.set_sources({"test_fb": {"accessControl": "forbidden"}})
+
+    assert user.can_read("test_fb") is False
+
+
+def test_user_cannot_read_source_without_access_control(default_values):
+    user = User(**default_values)
+    user.set_sources({"test_na": {}})
+
+    assert user.can_read("test_na") is False
+
+
 def test_user_can_readwrite(default_values):
     user = User(**default_values)
     user.set_sources(DEFAULT_SOURCES)

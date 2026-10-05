@@ -29,7 +29,9 @@ class User:
         self.sources = {}
 
     def can_read(self, source: str) -> bool:
-        return source in self.sources
+        return source in self.sources and self.sources.get(source, {}).get(
+            "accessControl", ""
+        ) in ("read", "readwrite")
 
     def can_readwrite(self, source: str) -> bool:
         return (
