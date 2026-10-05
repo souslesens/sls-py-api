@@ -1,3 +1,11 @@
+## Version 2.8.1 (2026-10-05)
+### 👷 Bug fixes
+
+- sources: keep accessControl provided by the main API
+- sources: return 502 on source without accessControl
+- auth: require read or readwrite accessControl in `can_read`
+- rdf: validate identifier and format on graph download
+
 ## Version 2.8.0 (2026-09-24)
 ### 🗜️ Refactoring
 
