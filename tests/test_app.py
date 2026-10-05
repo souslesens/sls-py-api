@@ -85,6 +85,24 @@ def test_get_user_sources_default_group(app, monkeypatch):
     assert user_sources["id1"]["accessControl"] == "read"
 
 
+def test_get_user_sources_keeps_provided_access_control(app, monkeypatch):
+    sources = {
+        "id1": {
+            "name": "test_ro",
+            "group": "DEFAULT",
+            "schemaType": "sls",
+            "accessControl": "readwrite",
+        },
+    }
+    profiles = {"default": {"sourcesAccessControl": {"sls/DEFAULT/test_ro": "read"}}}
+    monkeypatch.setattr(app, "get_profiles", Mock(return_value=profiles))
+    monkeypatch.setattr(app, "get_sources", Mock(return_value=sources))
+
+    user_sources = app._get_user_sources(Mock(token="token"))
+
+    assert user_sources["id1"]["accessControl"] == "readwrite"
+
+
 def test_remove_named_individuals_from_graph():
     g = Graph()
     s = URIRef("http://example.org/s")

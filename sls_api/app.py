@@ -129,35 +129,21 @@ class App(FastAPI):
         return user
 
     def _get_user_sources(self, user: User) -> dict | None:
-        profiles = self.get_profiles(user.token)
         sources = self.get_sources(user.token)
+        profiles = self.get_profiles(user.token)
 
-        all_access_control = {}
-        for identifier, source in sources.items():
-            name = source.get("name")
+        for source in sources.values():
+            if not source.get("accessControl"):
+                group = source.get("group", "")
+                if not group.strip():
+                    group = "DEFAULT"
 
-            group = source.get("group", "")
-            if len(group.strip()) == 0:
-                group = "DEFAULT"
+                source["accessControl"] = self._get_permission_from_profile(
+                    profiles,
+                    "/".join([source.get("schemaType"), group, source.get("name")]),
+                )
 
-            permission = self._get_permission_from_profile(
-                profiles,
-                "/".join([source.get("schemaType"), group, name]),
-            )
-
-            current_permission = all_access_control.setdefault(name, "")
-            if len(current_permission) < len(permission):
-                all_access_control[name] = permission
-
-        user_sources = {}
-        for identifier, source in sources.items():
-            name = source.get("name")
-
-            if name in all_access_control:
-                source["accessControl"] = all_access_control[name]
-                user_sources[identifier] = source
-
-        return user_sources
+        return sources
 
     def _get_permission_from_profile(
         self, user_profiles: dict, source_tree: str
