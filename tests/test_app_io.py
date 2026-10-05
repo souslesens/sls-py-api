@@ -40,15 +40,6 @@ def test_get_sls_config(app, monkeypatch):
     assert app.get_sls_config("token") == config
 
 
-def test_get_profiles(app, monkeypatch):
-    monkeypatch.setattr(
-        app_module.requests,
-        "get",
-        Mock(return_value=make_response(json_data={"resources": {"p": {}}})),
-    )
-    assert app.get_profiles("token") == {"p": {}}
-
-
 def test_get_sources(app, monkeypatch):
     monkeypatch.setattr(
         app_module.requests,
@@ -65,11 +56,9 @@ def test_cache_clear(app, monkeypatch):
         Mock(return_value=make_response(json_data={"resources": {}})),
     )
     app.get_sls_config("token")
-    app.get_profiles("token")
     app.get_sources("token")
     app.cache_clear()
     app.get_sls_config("token")
-    app.get_profiles("token")
     app.get_sources("token")
 
 

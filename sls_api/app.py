@@ -14,7 +14,7 @@ from typing import List
 
 import requests
 import dateparser
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from rdflib import Graph, URIRef, Literal, XSD, BNode
 from rdflib.namespace import OWL, DC
@@ -100,16 +100,6 @@ class App(FastAPI):
         return config
 
     @cache
-    def get_profiles(self, token: str) -> dict:
-        api_base_url = self.config.get("main", "souslesens_api_url")
-        url = f"{api_base_url}/profiles"
-        headers = {"Authorization": f"Bearer {token}"}
-
-        response = requests.get(url, headers=headers)
-        profiles = response.json()["resources"]
-        return profiles
-
-    @cache
     def get_sources(self, token: str) -> dict:
         api_base_url = self.config.get("main", "souslesens_api_url")
         url = f"{api_base_url}/sources"
@@ -121,7 +111,6 @@ class App(FastAPI):
 
     def cache_clear(self):
         self.get_sls_config.cache_clear()
-        self.get_profiles.cache_clear()
         self.get_sources.cache_clear()
 
     def add_sources_for_user(self, user: User) -> User:
@@ -130,49 +119,18 @@ class App(FastAPI):
 
     def _get_user_sources(self, user: User) -> dict | None:
         sources = self.get_sources(user.token)
-        profiles = self.get_profiles(user.token)
 
-        for source in sources.values():
+        for identifier, source in sources.items():
             if not source.get("accessControl"):
-                group = source.get("group", "")
-                if not group.strip():
-                    group = "DEFAULT"
-
-                source["accessControl"] = self._get_permission_from_profile(
-                    profiles,
-                    "/".join([source.get("schemaType"), group, source.get("name")]),
+                raise HTTPException(
+                    status_code=502,
+                    detail=(
+                        f"Bad Gateway: the SousLeSens API returned a malformed "
+                        f"source descriptor for '{identifier}' (missing accessControl)"
+                    ),
                 )
 
         return sources
-
-    def _get_permission_from_profile(
-        self, user_profiles: dict, source_tree: str
-    ) -> str:
-        final_permission = "forbidden"
-        for profile in user_profiles.values():
-            permissions = []
-            sources_access_control = profile["sourcesAccessControl"]
-            for key, value in sources_access_control.items():
-                if source_tree.startswith(key):
-                    permissions.append((key, value))
-
-            permissions = sorted(permissions, key=lambda k: len(k[1]), reverse=True)
-            if len(permissions) > 0:
-                final_permission = self.get_updated_permission(
-                    final_permission, permissions[0][1]
-                )
-
-        return final_permission
-
-    @staticmethod
-    def get_updated_permission(existing_perm, new_perm):
-        if existing_perm == "forbidden":
-            return new_perm
-
-        if existing_perm == "read" and new_perm == "forbidden":
-            return "read"
-
-        return "readwrite"
 
     def _get_graph_size(self, user: User, source_name: str, add_imports: bool = False):
         sources = self.get_sources(user.token)

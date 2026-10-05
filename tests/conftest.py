@@ -27,15 +27,6 @@ DEFAULT_SOURCES = {
     },
 }
 
-DEFAULT_PROFILES = {
-    "default": {
-        "sourcesAccessControl": {
-            "sls/DEFAULT/test_ro": "read",
-            "sls/DEFAULT/test_rw": "readwrite",
-        },
-    },
-}
-
 
 def write_config(tmp_path: Path) -> Path:
     config_path = tmp_path / "config.ini"
@@ -95,11 +86,6 @@ def user() -> User:
 @pytest.fixture
 def sources() -> dict:
     return DEFAULT_SOURCES
-
-
-@pytest.fixture
-def profiles() -> dict:
-    return DEFAULT_PROFILES
 
 
 @pytest.fixture

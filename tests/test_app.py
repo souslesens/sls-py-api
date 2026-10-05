@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
+from fastapi import HTTPException
 from rdflib import Graph, URIRef, Literal, BNode, XSD
 from rdflib.namespace import DC, OWL, RDF
 
@@ -19,51 +20,7 @@ def make_nt_file(tmp_path: Path, content: str = None) -> Path:
     return path
 
 
-def test_get_updated_permission_matrix(app):
-    cases = [
-        ("forbidden", "read", "read"),
-        ("forbidden", "readwrite", "readwrite"),
-        ("read", "forbidden", "read"),
-        ("read", "read", "readwrite"),
-        ("read", "readwrite", "readwrite"),
-        ("readwrite", "forbidden", "readwrite"),
-    ]
-    for existing, new, expected in cases:
-        assert app.get_updated_permission(existing, new) == expected
-
-
-def test_get_permission_from_profile_no_match(app):
-    profiles = {"default": {"sourcesAccessControl": {"sls:other": "readwrite"}}}
-    assert app._get_permission_from_profile(profiles, "sls:test") == "forbidden"
-
-
-def test_get_permission_from_profile_simple_match(app):
-    profiles = {"default": {"sourcesAccessControl": {"sls:": "read"}}}
-    assert app._get_permission_from_profile(profiles, "sls:test_ro") == "read"
-
-
-def test_get_permission_from_profile_longest_prefix_wins(app):
-    profiles = {
-        "default": {
-            "sourcesAccessControl": {
-                "sls:": "read",
-                "sls:test": "readwrite",
-            }
-        }
-    }
-    assert app._get_permission_from_profile(profiles, "sls:test_ro") == "readwrite"
-
-
-def test_get_permission_from_profile_aggregates_profiles(app):
-    profiles = {
-        "p1": {"sourcesAccessControl": {"sls:": "read"}},
-        "p2": {"sourcesAccessControl": {"sls:": "readwrite"}},
-    }
-    assert app._get_permission_from_profile(profiles, "sls:test_ro") == "readwrite"
-
-
-def test_get_user_sources_sets_access_control(app, monkeypatch, sources, profiles):
-    monkeypatch.setattr(app, "get_profiles", Mock(return_value=profiles))
+def test_get_user_sources_sets_access_control(app, monkeypatch, sources):
     monkeypatch.setattr(app, "get_sources", Mock(return_value=sources))
 
     user_sources = app._get_user_sources(Mock(token="token"))
@@ -72,17 +29,17 @@ def test_get_user_sources_sets_access_control(app, monkeypatch, sources, profile
     assert user_sources["test_rw"]["accessControl"] == "readwrite"
 
 
-def test_get_user_sources_default_group(app, monkeypatch):
+def test_get_user_sources_missing_access_control_raises_502(app, monkeypatch):
     sources = {
         "id1": {"name": "test_ro", "group": "  ", "schemaType": "sls"},
     }
-    profiles = {"default": {"sourcesAccessControl": {"sls/DEFAULT/test_ro": "read"}}}
-    monkeypatch.setattr(app, "get_profiles", Mock(return_value=profiles))
     monkeypatch.setattr(app, "get_sources", Mock(return_value=sources))
 
-    user_sources = app._get_user_sources(Mock(token="token"))
+    with pytest.raises(HTTPException) as exc_info:
+        app._get_user_sources(Mock(token="token"))
 
-    assert user_sources["id1"]["accessControl"] == "read"
+    assert exc_info.value.status_code == 502
+    assert "id1" in exc_info.value.detail
 
 
 def test_get_user_sources_keeps_provided_access_control(app, monkeypatch):
@@ -94,8 +51,6 @@ def test_get_user_sources_keeps_provided_access_control(app, monkeypatch):
             "accessControl": "readwrite",
         },
     }
-    profiles = {"default": {"sourcesAccessControl": {"sls/DEFAULT/test_ro": "read"}}}
-    monkeypatch.setattr(app, "get_profiles", Mock(return_value=profiles))
     monkeypatch.setattr(app, "get_sources", Mock(return_value=sources))
 
     user_sources = app._get_user_sources(Mock(token="token"))
