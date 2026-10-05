@@ -1,3 +1,4 @@
+import re
 import tempfile
 from pathlib import Path
 from typing import Annotated, Literal
@@ -137,6 +138,10 @@ def get_rdf_graph(
 ):
     try:
         app.cache_clear()
+        if identifier and not re.fullmatch(r"[0-9A-HJKMNP-TV-Z]{26}", identifier):
+            raise HTTPException(status_code=400, detail="Invalid identifier")
+        if "/" in format or "\\" in format:
+            raise HTTPException(status_code=400, detail="Invalid format")
         limit = app.config.getint("main", "chunk_size") or 1_000_000  # 1MB
         user = app.add_sources_for_user(user)
         if not user.can_read(source):

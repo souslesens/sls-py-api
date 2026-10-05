@@ -126,6 +126,15 @@ def test_get_rdf_graph_v1(monkeypatch):
     assert body["next_offset"] is None
 
 
+def test_get_rdf_graph_v1_invalid_identifier():
+    resp = client.get(
+        "/api/v1/rdf/graph",
+        headers=AUTH,
+        params={"source": SOURCE, "identifier": "../../etc/passwd"},
+    )
+    assert resp.status_code == 400
+
+
 def test_get_rdf_graph_v2(monkeypatch):
     graph = Graph()
     graph.add(
