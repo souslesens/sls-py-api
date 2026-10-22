@@ -17,6 +17,7 @@ dependencies = [
     "sparqlwrapper>=2.0.0,<3",
     "pyodbc>=5.1.0,<6",
     "dateparser>=1.2.2,<2",
+    "csv-to-db-py>=0.1.0,<1",
 ]
 
 [dependency-groups]
