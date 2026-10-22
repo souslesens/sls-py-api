@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 
+import requests
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
@@ -269,3 +270,21 @@ def test_csv_to_db_surfaces_load_error(monkeypatch):
     resp = client.post("/api/v1/csv-to-db", **_csv_request())
     assert resp.status_code == 500
     assert resp.json()["detail"] == "connection refused"
+
+
+def test_get_database_not_found(monkeypatch):
+    monkeypatch.setattr(
+        requests, "get", Mock(return_value=Mock(status_code=404, ok=False))
+    )
+    with pytest.raises(HTTPException) as exc:
+        sls_api.app.get_database(make_admin(), "missing")
+    assert exc.value.status_code == 404
+
+
+def test_get_database_upstream_error(monkeypatch):
+    monkeypatch.setattr(
+        requests, "get", Mock(return_value=Mock(status_code=500, ok=False))
+    )
+    with pytest.raises(HTTPException) as exc:
+        sls_api.app.get_database(make_admin(), "pg_assets")
+    assert exc.value.status_code == 502
