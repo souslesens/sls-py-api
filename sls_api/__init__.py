@@ -16,6 +16,7 @@ tags_metadata = [
     {"name": "misc", "description": ""},
     {"name": "rdf", "description": "RDF related routes"},
     {"name": "convert", "description": "Convert RDF serialization formats"},
+    {"name": "databases", "description": "Load CSV files into SousLeSens databases"},
 ]
 
 
@@ -63,6 +64,35 @@ def convert_rdf_format(
     result = app.convert_rdf_format(raw_data, input_format, output_format)
 
     return {"data": result}
+
+
+@app.post("/api/v1/csv-to-db", tags=["databases"])
+def csv_to_db(
+    user: Annotated[dict, Depends(verify_token)],
+    data: UploadFile,
+    database: Annotated[str, Form()],
+    table: Annotated[str, Form()],
+    delimiter: Annotated[str, Form()] = ",",
+):
+    try:
+        if not user.is_admin():
+            raise HTTPException(status_code=403, detail="Admin privileges required")
+
+        tmpfile = Path(gettempdir()) / f"{ULID()}.csv"
+        with tmpfile.open("wb") as fp:
+            fp.write(data.file.read())
+        try:
+            app.load_csv_to_database(user, database, table, tmpfile, delimiter)
+        finally:
+            tmpfile.unlink(missing_ok=True)
+
+        return {"database": database, "table": table, "status": "loaded"}
+    except Exception as e:
+        app.log.exception(e)
+        if isinstance(e, HTTPException):
+            raise
+        # Admin-only route: the upstream loading error is surfaced to the client.
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/v2/rdf/graph", tags=["rdf"])
