@@ -1,11 +1,13 @@
 from unittest.mock import Mock
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from rdflib import Graph, URIRef, Literal
 from rdflib.namespace import DC
 
 import sls_api
+from sls_api.app import DB_DRIVER_MAP
 from sls_api.users import User
 
 client = TestClient(sls_api.app)
@@ -169,3 +171,101 @@ def test_get_rdf_graph_v2(monkeypatch):
     assert body["graph_size"] == 2
     assert body["next_offset"] is None
     assert "http://example.org/s1" in body["data"]
+
+
+def make_admin():
+    user = User(groups=["admin"], id="2", login="root")
+    user.set_sources({SOURCE: {"accessControl": "readwrite"}})
+    return user
+
+
+def _csv_request():
+    return dict(
+        headers=AUTH,
+        data={"database": "pg_assets", "table": "assets"},
+        files={"data": ("assets.csv", b"a,b\n1,2\n", "text/csv")},
+    )
+
+
+def test_db_driver_map():
+    assert DB_DRIVER_MAP["pg"] == "postgres"
+    assert DB_DRIVER_MAP["postgres"] == "postgres"
+    assert DB_DRIVER_MAP["sqlserver"] == "mssql"
+    assert DB_DRIVER_MAP["mysql"] == "mysql"
+    assert DB_DRIVER_MAP["oracle"] == "oracle"
+
+
+def test_csv_to_db_forbidden_for_non_admin():
+    resp = client.post("/api/v1/csv-to-db", **_csv_request())
+    assert resp.status_code == 403
+
+
+def test_csv_to_db_success(monkeypatch):
+    monkeypatch.setattr(
+        sls_api.app, "get_user_from_token", Mock(return_value=make_admin())
+    )
+    load = Mock()
+    monkeypatch.setattr(sls_api.app, "load_csv_to_database", load)
+    req = _csv_request()
+    req["data"] = {"database": "pg_assets", "table": "assets", "delimiter": ";"}
+    resp = client.post("/api/v1/csv-to-db", **req)
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "database": "pg_assets",
+        "table": "assets",
+        "status": "loaded",
+    }
+    load.assert_called_once()
+    args = load.call_args.args
+    assert args[1] == "pg_assets"
+    assert args[2] == "assets"
+    assert args[4] == ";"
+
+
+def test_csv_to_db_unsupported_driver(monkeypatch):
+    monkeypatch.setattr(
+        sls_api.app, "get_user_from_token", Mock(return_value=make_admin())
+    )
+    monkeypatch.setattr(
+        sls_api.app,
+        "get_database",
+        Mock(
+            return_value={
+                "driver": "sqlite",
+                "host": "h",
+                "port": 1,
+                "user": "u",
+                "password": "p",
+                "database": "d",
+            }
+        ),
+    )
+    resp = client.post("/api/v1/csv-to-db", **_csv_request())
+    assert resp.status_code == 400
+
+
+def test_csv_to_db_unknown_database(monkeypatch):
+    monkeypatch.setattr(
+        sls_api.app, "get_user_from_token", Mock(return_value=make_admin())
+    )
+    monkeypatch.setattr(
+        sls_api.app,
+        "get_database",
+        Mock(side_effect=HTTPException(status_code=404, detail="not found")),
+    )
+    resp = client.post("/api/v1/csv-to-db", **_csv_request())
+    assert resp.status_code == 404
+
+
+def test_csv_to_db_surfaces_load_error(monkeypatch):
+    monkeypatch.setattr(
+        sls_api.app, "get_user_from_token", Mock(return_value=make_admin())
+    )
+    monkeypatch.setattr(
+        sls_api.app,
+        "load_csv_to_database",
+        Mock(side_effect=RuntimeError("connection refused")),
+    )
+    resp = client.post("/api/v1/csv-to-db", **_csv_request())
+    assert resp.status_code == 500
+    assert resp.json()["detail"] == "connection refused"
