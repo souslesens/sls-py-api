@@ -1,4 +1,4 @@
-FROM docker.io/library/python:3.11-alpine
+FROM docker.io/library/python:3.13-alpine
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 COPY --from=askomics/virtuoso:7.2.9 /usr/local/virtuoso-opensource/lib /usr/local/virtuoso-opensource/lib

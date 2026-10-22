@@ -16,7 +16,7 @@ variables:
   POETRY_VIRTUALENVS_PATH: $CI_PROJECT_DIR/venv
 
 .base-all:
-  image: astral/uv:python3.11-trixie-slim
+  image: astral/uv:python3.13-trixie-slim
   before_script:
     - apt-get update
     - apt-get install -y gcc g++ python3-dev unixodbc-dev
@@ -26,13 +26,13 @@ variables:
 
 black:
   stage: lint
-  image: astral/uv:python3.11-trixie-slim
+  image: astral/uv:python3.13-trixie-slim
   script:
     - uvx black sls_api tests
 
 pytest:
   stage: tests
-  image: astral/uv:python3.11-trixie-slim
+  image: astral/uv:python3.13-trixie-slim
   before_script:
     - apt-get update
     - apt-get install -y gcc g++ python3-dev unixodbc-dev

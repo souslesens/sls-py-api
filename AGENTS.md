@@ -6,7 +6,7 @@ Virtuoso triplestore and authenticates users against the SousLeSens API.
 ## VCS and tooling
 
 - VCS is **Mercurial** (`.hg/`), not git. Use `hg` commands, never `git`.
-- Package manager is **uv** (`.python-version` = 3.11, `uv.lock`). No poetry/pip.
+- Package manager is **uv** (`.python-version` = 3.13, `uv.lock`). No poetry/pip.
 
 ## Commands
 
