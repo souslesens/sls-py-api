@@ -34,6 +34,16 @@ from sls_api.utils import (
     sparql_query,
 )
 
+DB_DRIVER_MAP = {
+    "pg": "postgres",
+    "postgres": "postgres",
+    "postgresql": "postgres",
+    "sqlserver": "mssql",
+    "mssql": "mssql",
+    "mysql": "mysql",
+    "oracle": "oracle",
+}
+
 
 class App(FastAPI):
     def __init__(self, config_path: str = "config.ini", openapi_tags=[]):
@@ -108,6 +118,60 @@ class App(FastAPI):
         response = requests.get(url, headers=headers)
         sources = response.json()["resources"]
         return sources
+
+    def get_database(self, user: User, identifier: str) -> dict:
+        api_base_url = self.config.get("main", "souslesens_api_url")
+        url = f"{api_base_url}/admin/databases/{identifier}"
+        headers = {"Authorization": f"Bearer {user.token}"}
+
+        response = requests.get(url, headers=headers)
+        if response.status_code == 404:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Database '{identifier}' not found or not accessible",
+            )
+        if not response.ok:
+            raise HTTPException(
+                status_code=502,
+                detail=f"SousLeSens API returned {response.status_code} for database '{identifier}'",
+            )
+        return response.json()
+
+    def load_csv_to_database(
+        self,
+        user: User,
+        database_id: str,
+        table: str,
+        csv_path: Path,
+        delimiter: str = ",",
+    ) -> None:
+        descriptor = self.get_database(user, database_id)
+        db_type = DB_DRIVER_MAP.get(descriptor.get("driver"))
+        if db_type is None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported database driver: {descriptor.get('driver')}",
+            )
+
+        config = {
+            "DATABASE_CONFIG": {
+                "type": db_type,
+                "host": descriptor["host"],
+                "port": descriptor["port"],
+                "user": descriptor["user"],
+                "password": descriptor["password"],
+                "database": descriptor["database"],
+            },
+            "files_dir": str(csv_path),
+            "table": table,
+            "delimiter": delimiter,
+        }
+
+        # csv-to-db-py pulls pandas/polars/pyarrow; import it lazily to keep the
+        # API startup and the unit tests light.
+        from csv_to_db_py import load_csv_to_db
+
+        load_csv_to_db(config, str(csv_path))
 
     def cache_clear(self):
         self.get_sls_config.cache_clear()
