@@ -19,7 +19,7 @@ variables:
   image: astral/uv:python3.13-trixie-slim
   before_script:
     - apt-get update
-    - apt-get install -y gcc g++ python3-dev unixodbc-dev
+    - apt-get install -y gcc g++ python3-dev unixodbc-dev libpq-dev
   cache:
     paths:
       - venv
@@ -35,7 +35,7 @@ pytest:
   image: astral/uv:python3.13-trixie-slim
   before_script:
     - apt-get update
-    - apt-get install -y gcc g++ python3-dev unixodbc-dev
+    - apt-get install -y gcc g++ python3-dev unixodbc-dev libpq-dev
     - uv sync --locked
     - cp config.ini.default config.ini
   script:
