@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import Mock
 
 import requests
@@ -221,6 +222,33 @@ def test_csv_to_db_success(monkeypatch):
     assert args[1] == "pg_assets"
     assert args[2] == "assets"
     assert args[4] == ";"
+    assert Path(args[3]).suffix == ".csv"
+
+
+def test_csv_to_db_preserves_xlsx_suffix(monkeypatch):
+    monkeypatch.setattr(
+        sls_api.app, "get_user_from_token", Mock(return_value=make_admin())
+    )
+    load = Mock()
+    monkeypatch.setattr(sls_api.app, "load_csv_to_database", load)
+    req = _csv_request()
+    req["files"] = {"data": ("assets.xlsx", b"a,b\n1,2\n", "application/vnd.ms-excel")}
+    resp = client.post("/api/v1/csv-to-db", **req)
+    assert resp.status_code == 200
+    assert Path(load.call_args.args[3]).suffix == ".xlsx"
+
+
+def test_csv_to_db_falls_back_to_csv_without_suffix(monkeypatch):
+    monkeypatch.setattr(
+        sls_api.app, "get_user_from_token", Mock(return_value=make_admin())
+    )
+    load = Mock()
+    monkeypatch.setattr(sls_api.app, "load_csv_to_database", load)
+    req = _csv_request()
+    req["files"] = {"data": ("assets", b"a,b\n1,2\n", "text/csv")}
+    resp = client.post("/api/v1/csv-to-db", **req)
+    assert resp.status_code == 200
+    assert Path(load.call_args.args[3]).suffix == ".csv"
 
 
 def test_csv_to_db_unsupported_driver(monkeypatch):

@@ -78,7 +78,10 @@ def csv_to_db(
         if not user.is_admin():
             raise HTTPException(status_code=403, detail="Admin privileges required")
 
-        tmpfile = Path(gettempdir()) / f"{ULID()}.csv"
+        suffix = Path(data.filename or "").suffix
+        if suffix not in (".csv", ".xlsx"):
+            suffix = ".csv"
+        tmpfile = Path(gettempdir()) / f"{ULID()}{suffix}"
         with tmpfile.open("wb") as fp:
             fp.write(data.file.read())
         try:
