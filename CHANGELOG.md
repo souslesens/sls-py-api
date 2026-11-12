@@ -1,3 +1,26 @@
+## Version 2.9.0 (2026-11-12)
+### 🎉 New features
+
+- api: add POST /api/v1/csv-to-db to load a CSV into a database
+- api: add database descriptor lookup and driver mapping
+
+### 👷 Bug fixes
+
+- csv-to-db: keep uploaded file extension in temp file
+- docker: use a glibc base image for pyarrow wheels
+
+### 🤖 Continuous integration
+
+- install libpq-dev so psycopg2 builds in CI
+- raise docker image build memory limit to 4Gi
+
+### 🤷 Various changes
+
+- deps: add csv-to-db-py
+- deps: widen csv-to-db-py requirement to >=0.2,<0.3
+- docker: install libpq-dev so psycopg2 builds
+- docker: drop dev dependencies to reduce build memory
+
 ## Version 2.8.1 (2026-10-05)
 ### 👷 Bug fixes
 
