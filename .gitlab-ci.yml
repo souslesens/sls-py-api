@@ -8,6 +8,10 @@ include:
       - "templates/create-release-on-heptapod.yml"
       - "templates/build-docker-image.yml"
 
+image_build:
+  variables:
+    KUBERNETES_MEMORY_LIMIT: 4Gi
+
 default:
   tags:
     - dedibox
