@@ -7,8 +7,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3
 
 WORKDIR /src
 
+COPY pyproject.toml uv.lock ./
+RUN uv sync --locked --no-dev --no-install-project
 COPY . /src/
-RUN uv sync --locked
+RUN uv sync --locked --no-dev --no-install-project
 COPY config.ini.default /src/config.ini
 
 EXPOSE 8000
